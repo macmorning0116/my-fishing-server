@@ -1,9 +1,7 @@
 package com.yechan.fishing.fishing_api.global.external.naver;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
-@Component
 @ConfigurationProperties(prefix = "naver.api")
 public class NaverApiProperties {
 
