@@ -1,5 +1,6 @@
 package com.yechan.fishing.fishing_api.global.external.weather;
 
+import com.yechan.fishing.fishing_api.domain.analysis.dto.GptWeatherContext;
 import com.yechan.fishing.fishing_api.domain.weather.dto.WeatherResponse;
 import com.yechan.fishing.fishing_api.global.exception.ErrorCode;
 import com.yechan.fishing.fishing_api.global.exception.FishingException;
@@ -22,7 +23,7 @@ public class WeatherClient {
         this.props = props;
     }
 
-    public WeatherResponse getWeather(double lat, double lng) {
+    private OpenWeatherResponse fetchRawWeather(double lat, double lng) {
         try {
             return webClient.get()
                     .uri(uriBuilder -> uriBuilder
@@ -40,21 +41,52 @@ public class WeatherClient {
                                     .map(body -> new FishingException(ErrorCode.WEATHER_API_ERROR))
                     )
                     .bodyToMono(OpenWeatherResponse.class)
-                    .map(this::toWeatherResponse)
                     .block();
-        } catch (FishingException e) {
-            throw e;
         } catch (Exception e) {
             throw new FishingException(ErrorCode.WEATHER_API_ERROR);
         }
-
     }
+
+    public WeatherResponse getWeather(double lat, double lng) {
+        OpenWeatherResponse res = fetchRawWeather(lat, lng);
+        return toWeatherResponse(res);
+    }
+
+    public GptWeatherContext getGptWeatherContext(double lat, double lng) {
+        OpenWeatherResponse res = fetchRawWeather(lat, lng);
+        return toGptWeatherContext(lat, lng, res);
+    }
+
 
     private WeatherResponse toWeatherResponse(OpenWeatherResponse res) {
         validateResponse(res);
         return new WeatherResponse(
                 res.getMain().getTemp(),
                 res.getWeather().get(0).getMain(),
+                res.getSys().getSunrise(),
+                res.getSys().getSunset()
+        );
+    }
+
+    private GptWeatherContext toGptWeatherContext(
+            double lat,
+            double lng,
+            OpenWeatherResponse res
+    ) {
+        validateResponse(res);
+
+        return new GptWeatherContext(
+                lat,
+                lng,
+                res.getDt(),
+                res.getMain().getTemp(),
+                res.getMain().getFeelsLike(),
+                res.getMain().getHumidity(),
+                res.getWind().getSpeed(),
+                res.getWind().getDeg(),
+                res.getClouds().getAll(),
+                res.getWeather().get(0).getMain(),
+                res.getWeather().get(0).getDescription(),
                 res.getSys().getSunrise(),
                 res.getSys().getSunset()
         );
