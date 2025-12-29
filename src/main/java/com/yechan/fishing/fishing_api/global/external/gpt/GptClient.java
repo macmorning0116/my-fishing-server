@@ -12,8 +12,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
 import tools.jackson.databind.ObjectMapper;
 
+
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 
 @Component
 public class GptClient {
@@ -33,8 +35,6 @@ public class GptClient {
     }
 
     public AnalysisResponse analyze(
-
-            
             MultipartFile image,
             GptWeatherContext weather
     ) {
@@ -50,11 +50,16 @@ public class GptClient {
         }
 
         int maxRetry = 3;
+        long now = weather.timestamp();
+        long sunrise = weather.sunrise();
+        long sunset = weather.sunset();
+
+        boolean isDaytime = sunrise <= now && now <= sunset;
 
         for (int attempt = 1; attempt <= maxRetry; attempt++) {
             boolean isRetry = attempt > 1;
 
-            String prompt = buildPrompt(weather, isRetry);
+            String prompt = buildPrompt(weather, isRetry, isDaytime);
 
             GptRequest request = new GptRequest(
                     props.getModel(),
@@ -101,90 +106,116 @@ public class GptClient {
         throw new FishingException(ErrorCode.GPT_API_ERROR);
     }
 
-    private String buildPrompt(GptWeatherContext w, boolean isRetry) {
-        String base = """
-        당신은 20년차 낚시 고수(포인트 분석 전문가)입니다.
-        사용자가 보낸 "사진"과 아래 "환경 정보"를 종합해서, 낚시 포인트를 추천해 주세요.
+
+    private String buildPrompt(GptWeatherContext w, boolean isRetry, boolean isDaytime) {
+        String timeWindowKo = isDaytime ? "주간" : "야간";
+
+        String base = String.format(Locale.US, """
+        You are a fishing spot analyst with 20+ years of experience specialized in photo-based spot reading.
+        Use ONLY the provided photo and the environment data below to recommend fishing spots.
         
-        [말투 규칙]
-        - 반드시 존댓말로만 답변해 주세요.
-        - 반말/명령조/비속어는 금지합니다.
+        [TONE + LANGUAGE]
+        - Output JSON only.
+        - JSON keys must follow the schema (English keys).
+        - ALL string values (summary, reason, tackle, strategy) MUST be Korean only (존댓말).
+        - Do NOT use any English words at all inside string values. (e.g., NIGHTTIME/DAYTIME/OK/LINE etc. 금지)
         
-        [좌표 안정화 규칙]
-        - x, y는 반드시 0.08 이상 0.92 이하 범위에서만 선택하세요.
-        - radius는 0.05 이상 0.18 이하로 제한하세요.
-        - 이미지의 가장자리(프레임, 하늘만 있는 영역, 물과 무관한 영역)는 피하세요.
-        - points는 실제 낚시 접근이 가능한 위치만 선택하세요.
+        [CRITICAL INTERPRETATION]
+        - temp is AIR temperature (대기 기온) only. It is NOT water temperature.
+        - Do NOT claim or estimate water temperature.
         
-        [활성도 판단 규칙]
-        - 현재 시각(timestamp)을 기준으로 아래를 고려하세요.
-        - sunrise 전후 ±1시간: 활성도 높음 (아침 피딩 타임)
-        - sunset 전후 ±1시간: 활성도 높음 (저녁 피딩 타임)
-        - 그 외 시간대:
-          - 흐림(cloudiness 높음) + 약한 바람: 중간 이상
-          - 맑음 + 바람 약함: 중간
-          - 바람 강함 + 수온 낮음: 낮음
-        - 이 판단을 summary와 strategy에 반드시 반영하세요.
+        [TIME WINDOW — SERVER FINAL]
+        - currentTimeWindow: %s
+        [ABSOLUTE]
+        - The time window above is FINAL. Do NOT reinterpret sunrise/sunset/timestamp.
+        - You MUST reflect this time window in summary/strategy.
         
-        [출력 규칙]
-        - 반드시 아래 JSON "객체" 하나만 출력해 주세요.
-        - JSON 외의 설명 문장, 마크다운, 코드블록(```), 주석은 절대 출력하지 마세요.
-        - 숫자는 number로 출력하세요(따옴표로 감싸지 마세요).
-        - points는 2~4개로 출력해 주세요.
-        - 좌표계: 이미지 좌상단이 (0,0), 우하단이 (1,1)인 "비율 좌표"입니다.
-        - radius는 0.05 ~ 0.20 범위로 출력해 주세요.
+        ────────────────────────────────────────
+        [OUTPUT LENGTH — MUST BE SHORT]
+        - summary: max 2 sentences, total <= 220 characters.
+        - each reason: max 2 sentences, <= 180 characters.
+        - tackle: use the REQUIRED template below, <= 380 characters.
+        - strategy: use the REQUIRED template below, max 4 lines, <= 420 characters.
+        - Do NOT add extra explanations.
         
-        [JSON 스키마]
+        ────────────────────────────────────────
+        [POINT SELECTION — MUST NOT VIOLATE]
+        - Coordinates are normalized: top-left (0,0), bottom-right (1,1).
+        - x,y must be within [0.08, 0.92].
+        - radius must be within [0.05, 0.18].
+        - points MUST be EXACTLY 2.
+        
+        [WATER-ONLY RULE — HIGHEST PRIORITY]
+        - Each point center (x,y) MUST be ON WATER surface.
+        - NEVER place the center on sky/land/trees/rocks/decks/roads/boats/buildings/shadows.
+        - Avoid regions above the horizon line if visible.
+        - Prefer water cues: ripples, reflections, specular highlights, continuous water texture.
+        
+        [INTERNAL VALIDATION LOOP]
+        For EACH point, internally verify:
+        1) center is clearly on water (not sky/land)
+        2) nearby texture also looks like water (ripples/reflection)
+        3) not near frame/UI/text/edge
+        If any fails, move the point and recheck.
+        
+        ────────────────────────────────────────
+        [TACKLE TEMPLATE — MUST FOLLOW EXACTLY]
+        Write tackle as ONE line in this exact format:
+        "대상어: (주)/(부) | 소프트: (웜형태)(인치) (리그) 훅(사이즈) 싱커/헤드(g) | 하드/메탈: (종류)(크기/무게) (액션/잠행) | 라인/로드: (라인종류)(lb) (로드파워)(길이)"
+        
+        Rules:
+        - Worm type must be explicit (스트레이트/패들테일/크리처/호그/그럽 중 선택)
+        - Rig must be explicit (네꼬/다운샷/텍사스/지그헤드/노싱커 중 선택)
+        - Must include numeric sizes (inches, g, mm or g, lb)
+        - No vague words like "적당히", "작게", "상황 봐서", "야광미끼"
+        
+        [STRATEGY TEMPLATE — MUST FOLLOW]
+        Write strategy as 3~4 lines, each starting with "①②③④":
+        ① 포인트1: (캐스팅 방향/각도) + (수심층) + (리트리브/스테이 초)
+        ② 포인트1 보정: (반응 없을 때 루어/리그 교체 1개만)
+        ③ 포인트2: (공략 라인) + (동작) + (스테이 초)
+        ④ 마무리: (입질 거리/수심 고정 방법 1문장)
+        
+        ────────────────────────────────────────
+        [JSON SCHEMA]
         {
           "summary": string,
           "points": [
+            { "x": number, "y": number, "radius": number, "reason": string },
             { "x": number, "y": number, "radius": number, "reason": string }
           ],
           "tackle": string,
           "strategy": string
         }
         
-        [작성 가이드]
-        - summary: 현재 상황을 2~3문장으로 요약(날씨/바람/수온 추정/활성도 추정 포함)
-        - reason: 왜 그 지점이 유리한지(그늘, 수초, 브레이크라인, 유입수, 바람 맞는 면 등)
-        - tackle: 채비를 구체적으로(대상어/라인 파운드/훅/싱커/루어 종류)
-        - strategy: 운용법을 구체적으로(캐스팅 각도, 수심층, 릴링 속도, 스테이/저킹, 탐색 순서)
-        
-        [환경 정보]
-        - lat: %f
-        - lng: %f
-        - timestamp: %d
-        - temp(°C): %.1f
-        - feelsLike(°C): %.1f
+        [ENVIRONMENT DATA]
+        - lat: %.6f
+        - lng: %.6f
+        - temp(C, air): %.1f
+        - feelsLike(C): %.1f
         - humidity(%%): %d
         - windSpeed(m/s): %.1f
         - windDeg: %d
         - cloudiness(%%): %d
         - weatherMain: %s
         - weatherDesc: %s
-        - sunrise: %d
-        - sunset: %d
-        """.formatted(
+        """,
+                timeWindowKo,
                 w.lat(), w.lng(),
-                w.timestamp(),
                 w.temperature(), w.feelsLike(),
                 w.humidity(),
                 w.windSpeed(), w.windDeg(),
                 w.cloudiness(),
-                w.weatherMain(), w.weatherDesc(),
-                w.sunrise(), w.sunset()
+                w.weatherMain(), w.weatherDesc()
         );
 
-        if (!isRetry) {
-            return base;
-        }
+        if (!isRetry) return base;
 
-        // 재시도 할때 추가할 프롬프트
         return base + """
-                이전 응답이 JSON 형식이 아니었습니다.
-                이번에는 반드시 JSON 객체 하나만 출력하세요.
-                다른 텍스트는 절대 포함하지 마세요.
-                """;
+        Previous response violated rules (format/length/language/water-only).
+        Return ONLY ONE JSON object matching the schema.
+        Remember: string values must be Korean only and short.
+        """;
     }
 
     private boolean isValidJson(String json) {
