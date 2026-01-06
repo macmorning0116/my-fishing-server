@@ -24,7 +24,7 @@ public class MapController {
             @Valid ReverseGeocodeRequest request
             ){
         return ApiResponse.success(
-                mapService.reverseGeocodeResponse(request.lat(), request.lng())
+                mapService.getAddress(request.lat(), request.lng())
         );
     }
 
