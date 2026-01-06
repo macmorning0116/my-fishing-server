@@ -4,9 +4,11 @@ import com.yechan.fishing.fishing_api.domain.analysis.dto.AnalysisResponse;
 import com.yechan.fishing.fishing_api.domain.analysis.dto.GptWeatherContext;
 import com.yechan.fishing.fishing_api.global.external.gpt.GptClient;
 import com.yechan.fishing.fishing_api.global.external.weather.WeatherClient;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @Service
 public class AnalysisService {
 
@@ -26,8 +28,15 @@ public class AnalysisService {
             double lat,
             double lng
     ) {
+
+        log.info("Analysis started. lat={} lng={} imageSize={}KB",
+                lat, lng, image.getSize() / 1024);
+
         GptWeatherContext weather = weatherClient.getGptWeatherContext(lat, lng);
 
-        return gptClient.analyze(image, weather);
+        AnalysisResponse response = gptClient.analyze(image, weather);
+        log.info("Analysis completed successfully.");
+
+        return response;
     }
 }
