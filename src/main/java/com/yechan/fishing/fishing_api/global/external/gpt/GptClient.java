@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 
 import java.util.Base64;
@@ -70,18 +71,14 @@ public class GptClient {
     }
 
     private String callGpt(GptRequest request) {
-        GptResponse response = webClient.post()
+        return webClient.post()
                 .uri("/responses")
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(GptResponse.class)
+                .map(GptResponse::getOutputText)
+                .switchIfEmpty(Mono.error(new FishingException(ErrorCode.GPT_API_ERROR)))
                 .block();
-
-        if (response == null) {
-            throw new FishingException(ErrorCode.GPT_API_ERROR);
-        }
-
-        return response.getOutputText();
     }
 
     private boolean isDaytime(GptWeatherContext weather) {
