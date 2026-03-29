@@ -1,5 +1,7 @@
 package com.yechan.fishing.fishing_api.global.external.weather.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 
 public class OpenWeatherResponse {
@@ -39,6 +41,7 @@ public class OpenWeatherResponse {
 
     public static class Main {
         private double temp;
+        @JsonProperty("feels_like")
         private double feels_like;
         private int humidity;
 
