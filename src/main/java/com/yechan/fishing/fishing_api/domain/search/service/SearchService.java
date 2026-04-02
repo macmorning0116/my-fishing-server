@@ -12,6 +12,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -87,6 +88,7 @@ public class SearchService {
         }
 
         addTermFilter(filter, "board_key", request.boardKey());
+        addPublishedAtRangeFilter(filter, request.fromDate(), request.untilDate());
 
         Map<String, Object> bool = new LinkedHashMap<>();
         if (!must.isEmpty()) {
@@ -117,6 +119,21 @@ public class SearchService {
             return;
         }
         filters.add(Map.of("term", Map.of(field, value.trim())));
+    }
+
+    private void addPublishedAtRangeFilter(List<Object> filters, LocalDate fromDate, LocalDate untilDate) {
+        if (fromDate == null && untilDate == null) {
+            return;
+        }
+
+        Map<String, Object> range = new LinkedHashMap<>();
+        if (fromDate != null) {
+            range.put("gte", fromDate.toString());
+        }
+        if (untilDate != null) {
+            range.put("lte", untilDate.toString());
+        }
+        filters.add(Map.of("range", Map.of("published_at", range)));
     }
 
     private SearchPostItem toItem(JsonNode source) {
