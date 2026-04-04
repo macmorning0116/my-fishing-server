@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yechan.fishing.fishing_api.domain.search.dto.SearchPostsRequest;
 import com.yechan.fishing.fishing_api.domain.search.dto.SearchPostsResponse;
+import com.yechan.fishing.fishing_api.domain.search.dto.SearchRegionCountItem;
 import com.yechan.fishing.fishing_api.global.external.opensearch.OpenSearchProperties;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -19,6 +20,7 @@ import java.util.Base64;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -103,6 +105,7 @@ class SearchServiceTest {
                 new SearchPostsRequest(
                         "bass",
                         "bass_walking",
+                        "경상권",
                         LocalDate.of(2026, 3, 28),
                         LocalDate.of(2026, 4, 1),
                         null,
@@ -126,8 +129,9 @@ class SearchServiceTest {
         assertEquals(2, body.path("size").asInt());
         assertEquals("bass", body.path("query").path("bool").path("must").get(0).path("multi_match").path("query").asText());
         assertEquals("bass_walking", body.path("query").path("bool").path("filter").get(1).path("term").path("board_key").asText());
-        assertEquals("2026-03-28", body.path("query").path("bool").path("filter").get(2).path("range").path("published_at").path("gte").asText());
-        assertEquals("2026-04-01", body.path("query").path("bool").path("filter").get(2).path("range").path("published_at").path("lte").asText());
+        assertEquals("경상권", body.path("query").path("bool").path("filter").get(2).path("term").path("region").asText());
+        assertEquals("2026-03-28", body.path("query").path("bool").path("filter").get(3).path("range").path("published_at").path("gte").asText());
+        assertEquals("2026-04-01", body.path("query").path("bool").path("filter").get(3).path("range").path("published_at").path("lte").asText());
         assertEquals("published_at", body.path("sort").get(0).fieldNames().next());
     }
 
@@ -161,7 +165,7 @@ class SearchServiceTest {
                 .encodeToString("[\"2026-04-01\",\"469820\"]".getBytes(StandardCharsets.UTF_8));
 
         SearchPostsResponse response = searchService.searchPosts(
-                new SearchPostsRequest(null, null, null, null, cursor, 10)
+                new SearchPostsRequest(null, null, null, null, null, cursor, 10)
         );
 
         assertEquals(1, response.items().size());
@@ -184,13 +188,53 @@ class SearchServiceTest {
         server.enqueue(new MockResponse().setResponseCode(200).setBody(""));
 
         SearchPostsResponse response = searchService.searchPosts(
-                new SearchPostsRequest(null, null, null, null, "not-a-valid-cursor", null)
+                new SearchPostsRequest(null, null, null, null, null, "not-a-valid-cursor", null)
         );
 
         assertTrue(response.items().isEmpty());
         assertEquals(0L, response.total());
         assertEquals(20, response.size());
         assertNull(response.nextCursor());
+    }
+
+    @Test
+    void getRegionCounts_returnsSortedBuckets() throws Exception {
+        server.enqueue(jsonResponse("""
+                {
+                  "aggregations": {
+                    "regions": {
+                      "buckets": [
+                        { "key": "서울/경기권", "doc_count": 128 },
+                        { "key": "충청권", "doc_count": 84 },
+                        { "key": "경상권", "doc_count": 63 }
+                      ]
+                    }
+                  }
+                }
+                """));
+
+        List<SearchRegionCountItem> response = searchService.getRegionCounts(
+                LocalDate.of(2026, 3, 1),
+                LocalDate.of(2026, 3, 31)
+        );
+
+        assertIterableEquals(
+                List.of(
+                        new SearchRegionCountItem("서울/경기권", 128),
+                        new SearchRegionCountItem("충청권", 84),
+                        new SearchRegionCountItem("경상권", 63)
+                ),
+                response
+        );
+
+        RecordedRequest request = server.takeRequest();
+        JsonNode body = objectMapper.readTree(request.getBody().readUtf8());
+        assertEquals(0, body.path("size").asInt());
+        assertEquals("ok", body.path("query").path("bool").path("filter").get(0).path("term").path("access_status").asText());
+        assertEquals("region", body.path("query").path("bool").path("filter").get(1).path("exists").path("field").asText());
+        assertEquals("2026-03-01", body.path("query").path("bool").path("filter").get(2).path("range").path("published_at").path("gte").asText());
+        assertEquals("2026-03-31", body.path("query").path("bool").path("filter").get(2).path("range").path("published_at").path("lte").asText());
+        assertEquals("region", body.path("aggs").path("regions").path("terms").path("field").asText());
     }
 
     private MockResponse jsonResponse(String body) {

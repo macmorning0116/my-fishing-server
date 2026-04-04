@@ -9,6 +9,7 @@ import java.time.LocalDate;
 public record SearchPostsRequest(
         String q,
         String boardKey,
+        String region,
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate untilDate,
         String cursor,

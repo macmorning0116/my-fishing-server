@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yechan.fishing.fishing_api.domain.search.dto.SearchPostItem;
 import com.yechan.fishing.fishing_api.domain.search.dto.SearchPostsRequest;
 import com.yechan.fishing.fishing_api.domain.search.dto.SearchPostsResponse;
+import com.yechan.fishing.fishing_api.domain.search.dto.SearchRegionCountItem;
 import com.yechan.fishing.fishing_api.global.external.opensearch.OpenSearchProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -70,6 +71,58 @@ public class SearchService {
         return new SearchPostsResponse(items, total, size, nextCursor);
     }
 
+    public List<SearchRegionCountItem> getRegionCounts(LocalDate fromDate, LocalDate untilDate) {
+        List<Object> filters = new ArrayList<>();
+        filters.add(Map.of("term", Map.of("access_status", "ok")));
+        filters.add(Map.of("exists", Map.of("field", "region")));
+        addPublishedAtRangeFilter(filters, fromDate, untilDate);
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("size", 0);
+        body.put("query", Map.of(
+                "bool",
+                Map.of("filter", filters)
+        ));
+        body.put("aggs", Map.of(
+                "regions",
+                Map.of(
+                        "terms",
+                        Map.of(
+                                "field", "region",
+                                "size", 20,
+                                "order", Map.of("_count", "desc")
+                        )
+                )
+        ));
+
+        JsonNode response = openSearchWebClient.post()
+                .uri("/{index}/_search", openSearchProperties.getIndexName())
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .block();
+
+        if (response == null) {
+            return List.of();
+        }
+
+        JsonNode buckets = response.path("aggregations").path("regions").path("buckets");
+        List<SearchRegionCountItem> items = new ArrayList<>();
+
+        if (buckets.isArray()) {
+            for (JsonNode bucket : buckets) {
+                String region = bucket.path("key").asText(null);
+                long count = bucket.path("doc_count").asLong(0L);
+
+                if (StringUtils.hasText(region) && count > 0) {
+                    items.add(new SearchRegionCountItem(region, count));
+                }
+            }
+        }
+
+        return items;
+    }
+
     private Map<String, Object> buildQuery(SearchPostsRequest request, int size) {
         List<Object> must = new ArrayList<>();
         List<Object> filter = new ArrayList<>();
@@ -88,6 +141,7 @@ public class SearchService {
         }
 
         addTermFilter(filter, "board_key", request.boardKey());
+        addTermFilter(filter, "region", request.region());
         addPublishedAtRangeFilter(filter, request.fromDate(), request.untilDate());
 
         Map<String, Object> bool = new LinkedHashMap<>();

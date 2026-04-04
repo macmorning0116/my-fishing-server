@@ -2,6 +2,7 @@ package com.yechan.fishing.fishing_api.domain.search.controller;
 
 import com.yechan.fishing.fishing_api.domain.search.dto.SearchPostItem;
 import com.yechan.fishing.fishing_api.domain.search.dto.SearchPostsResponse;
+import com.yechan.fishing.fishing_api.domain.search.dto.SearchRegionCountItem;
 import com.yechan.fishing.fishing_api.domain.search.service.SearchService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +53,7 @@ class SearchControllerTest {
         given(searchService.searchPosts(argThat(request ->
                 "bass".equals(request.q())
                         && "bass_walking".equals(request.boardKey())
+                        && "경상권".equals(request.region())
                         && LocalDate.of(2026, 3, 28).equals(request.fromDate())
                         && LocalDate.of(2026, 4, 1).equals(request.untilDate())
                         && request.cursor() == null
@@ -61,6 +63,7 @@ class SearchControllerTest {
         mockMvc.perform(get("/v1/search/posts")
                         .param("q", "bass")
                         .param("boardKey", "bass_walking")
+                        .param("region", "경상권")
                         .param("fromDate", "2026-03-28")
                         .param("untilDate", "2026-04-01")
                         .param("size", "20"))
@@ -77,5 +80,25 @@ class SearchControllerTest {
         mockMvc.perform(get("/v1/search/posts")
                         .param("size", "101"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getRegionCounts_returnsWrappedSuccessResponse() throws Exception {
+        given(searchService.getRegionCounts(
+                LocalDate.of(2026, 3, 1),
+                LocalDate.of(2026, 3, 31)
+        )).willReturn(List.of(
+                new SearchRegionCountItem("서울/경기권", 128),
+                new SearchRegionCountItem("충청권", 84)
+        ));
+
+        mockMvc.perform(get("/v1/search/regions")
+                        .param("fromDate", "2026-03-01")
+                        .param("untilDate", "2026-03-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].region").value("서울/경기권"))
+                .andExpect(jsonPath("$.data[0].count").value(128))
+                .andExpect(jsonPath("$.data[1].region").value("충청권"));
     }
 }

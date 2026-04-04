@@ -14,6 +14,7 @@ class SearchPostsRequestTest {
         SearchPostsRequest request = new SearchPostsRequest(
                 "bass",
                 "bass_walking",
+                "경상권",
                 LocalDate.of(2026, 3, 28),
                 LocalDate.of(2026, 4, 1),
                 null,
@@ -23,6 +24,7 @@ class SearchPostsRequestTest {
         assertEquals(20, request.safeSize());
         assertEquals("bass", request.q());
         assertEquals("bass_walking", request.boardKey());
+        assertEquals("경상권", request.region());
         assertEquals(LocalDate.of(2026, 3, 28), request.fromDate());
         assertEquals(LocalDate.of(2026, 4, 1), request.untilDate());
         assertNull(request.cursor());
@@ -30,7 +32,7 @@ class SearchPostsRequestTest {
 
     @Test
     void safeSize_returnsProvidedSize() {
-        SearchPostsRequest request = new SearchPostsRequest(null, null, null, null, "cursor", 50);
+        SearchPostsRequest request = new SearchPostsRequest(null, null, null, null, null, "cursor", 50);
 
         assertEquals(50, request.safeSize());
     }
