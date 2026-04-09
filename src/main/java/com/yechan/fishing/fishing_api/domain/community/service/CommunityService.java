@@ -6,7 +6,6 @@ import com.yechan.fishing.fishing_api.domain.community.dto.CommunityCommentItem;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityLikeResponse;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostDetailResponse;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostImageItem;
-import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostImageRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostItem;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostsRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostsResponse;
@@ -28,6 +27,8 @@ import com.yechan.fishing.fishing_api.domain.community.repository.CommunityPostI
 import com.yechan.fishing.fishing_api.domain.community.repository.CommunityPostLikeRepository;
 import com.yechan.fishing.fishing_api.domain.community.repository.CommunityPostRepository;
 import com.yechan.fishing.fishing_api.domain.community.repository.CommunityReportRepository;
+import com.yechan.fishing.fishing_api.domain.community.storage.ImageStorageService;
+import com.yechan.fishing.fishing_api.domain.community.storage.StoredCommunityImage;
 import com.yechan.fishing.fishing_api.global.exception.ErrorCode;
 import com.yechan.fishing.fishing_api.global.exception.FishingException;
 import java.math.BigDecimal;
@@ -41,6 +42,7 @@ import java.util.Map;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class CommunityService {
@@ -53,6 +55,7 @@ public class CommunityService {
   private final CommunityPostLikeRepository communityPostLikeRepository;
   private final CommunityCommentRepository communityCommentRepository;
   private final CommunityReportRepository communityReportRepository;
+  private final ImageStorageService imageStorageService;
 
   public CommunityService(
       UserRepository userRepository,
@@ -60,13 +63,15 @@ public class CommunityService {
       CommunityPostImageRepository communityPostImageRepository,
       CommunityPostLikeRepository communityPostLikeRepository,
       CommunityCommentRepository communityCommentRepository,
-      CommunityReportRepository communityReportRepository) {
+      CommunityReportRepository communityReportRepository,
+      ImageStorageService imageStorageService) {
     this.userRepository = userRepository;
     this.communityPostRepository = communityPostRepository;
     this.communityPostImageRepository = communityPostImageRepository;
     this.communityPostLikeRepository = communityPostLikeRepository;
     this.communityCommentRepository = communityCommentRepository;
     this.communityReportRepository = communityReportRepository;
+    this.imageStorageService = imageStorageService;
   }
 
   @Transactional(readOnly = true)
@@ -110,9 +115,11 @@ public class CommunityService {
   }
 
   @Transactional
-  public CommunityPostDetailResponse createPost(CreateCommunityPostRequest request) {
+  public CommunityPostDetailResponse createPost(
+      CreateCommunityPostRequest request, List<MultipartFile> imageFiles) {
     User user = getUser(request.userId());
     LocalDateTime now = LocalDateTime.now();
+    List<StoredCommunityImage> storedImages = imageStorageService.storeCommunityImages(imageFiles);
 
     CommunityPost post =
         communityPostRepository.save(
@@ -130,7 +137,7 @@ public class CommunityService {
                 .lengthCm(request.lengthCm())
                 .tackleType(request.tackleType())
                 .tackleCustomText(request.tackleCustomText())
-                .thumbnailImageUrl(firstRequestedImageUrl(request.images()))
+                .thumbnailImageUrl(firstUploadedImageUrl(storedImages))
                 .likeCount(0)
                 .commentCount(0)
                 .reportCount(0)
@@ -139,7 +146,7 @@ public class CommunityService {
                 .updatedAt(now)
                 .build());
 
-    List<CommunityPostImage> images = createImages(post, request.images(), now);
+    List<CommunityPostImage> images = createImages(post, storedImages, now);
     if (!images.isEmpty()) {
       communityPostImageRepository.saveAll(images);
     }
@@ -325,22 +332,22 @@ public class CommunityService {
   }
 
   private List<CommunityPostImage> createImages(
-      CommunityPost post, List<CommunityPostImageRequest> imageRequests, LocalDateTime now) {
-    if (imageRequests == null || imageRequests.isEmpty()) {
+      CommunityPost post, List<StoredCommunityImage> storedImages, LocalDateTime now) {
+    if (storedImages == null || storedImages.isEmpty()) {
       return List.of();
     }
 
     List<CommunityPostImage> images = new ArrayList<>();
-    for (CommunityPostImageRequest imageRequest : imageRequests) {
+    for (StoredCommunityImage storedImage : storedImages) {
       images.add(
           CommunityPostImage.builder()
               .post(post)
-              .imageUrl(imageRequest.imageUrl())
-              .sortOrder(imageRequest.sortOrder())
-              .contentType(imageRequest.contentType())
-              .fileSize(imageRequest.fileSize())
-              .width(imageRequest.width())
-              .height(imageRequest.height())
+              .imageUrl(storedImage.imageUrl())
+              .sortOrder(storedImage.sortOrder())
+              .contentType(storedImage.contentType())
+              .fileSize(storedImage.fileSize())
+              .width(storedImage.width())
+              .height(storedImage.height())
               .createdAt(now)
               .build());
     }
@@ -366,7 +373,7 @@ public class CommunityService {
         post.getTackleCustomText(),
         post.getThumbnailImageUrl() != null
             ? post.getThumbnailImageUrl()
-            : firstStoredImageUrl(images),
+            : firstSavedImageUrl(images),
         post.getLikeCount(),
         post.getCommentCount(),
         likedByMe,
@@ -434,14 +441,14 @@ public class CommunityService {
     return value == null ? null : value.doubleValue();
   }
 
-  private String firstRequestedImageUrl(List<CommunityPostImageRequest> images) {
-    if (images == null || images.isEmpty()) {
+  private String firstUploadedImageUrl(List<StoredCommunityImage> storedImages) {
+    if (storedImages == null || storedImages.isEmpty()) {
       return null;
     }
-    return images.get(0).imageUrl();
+    return storedImages.get(0).imageUrl();
   }
 
-  private String firstStoredImageUrl(List<CommunityPostImage> images) {
+  private String firstSavedImageUrl(List<CommunityPostImage> images) {
     if (images == null || images.isEmpty()) {
       return null;
     }

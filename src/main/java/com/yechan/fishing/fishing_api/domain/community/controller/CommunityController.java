@@ -23,7 +23,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @Validated
 @RestController
@@ -47,10 +49,11 @@ public class CommunityController {
     return ApiResponse.success(communityService.getPost(postId, viewerUserId));
   }
 
-  @PostMapping("/posts")
+  @PostMapping(value = "/posts", consumes = "multipart/form-data")
   public ApiResponse<CommunityPostDetailResponse> createPost(
-      @Valid @RequestBody CreateCommunityPostRequest request) {
-    return ApiResponse.success(communityService.createPost(request));
+      @Valid @RequestPart("request") CreateCommunityPostRequest request,
+      @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+    return ApiResponse.success(communityService.createPost(request, images));
   }
 
   @GetMapping("/posts/{postId}/comments")

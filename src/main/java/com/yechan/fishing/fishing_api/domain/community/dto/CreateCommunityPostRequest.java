@@ -3,14 +3,12 @@ package com.yechan.fishing.fishing_api.domain.community.dto;
 import com.yechan.fishing.fishing_api.domain.community.entity.enums.FishedAtSource;
 import com.yechan.fishing.fishing_api.domain.community.entity.enums.LocationSource;
 import com.yechan.fishing.fishing_api.domain.community.entity.enums.TackleType;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
-import java.util.List;
 
 public record CreateCommunityPostRequest(
     @NotNull Long userId,
@@ -25,5 +23,4 @@ public record CreateCommunityPostRequest(
     @Size(max = 100) String species,
     @Min(0) Integer lengthCm,
     TackleType tackleType,
-    @Size(max = 255) String tackleCustomText,
-    @Valid @Size(max = 5) List<CommunityPostImageRequest> images) {}
+    @Size(max = 255) String tackleCustomText) {}
