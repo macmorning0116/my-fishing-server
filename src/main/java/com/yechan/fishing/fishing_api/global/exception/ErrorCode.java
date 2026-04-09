@@ -22,6 +22,9 @@ public enum ErrorCode {
   COMMUNITY_REPORT_DUPLICATE("COMMUNITY_REPORT_DUPLICATE", "이미 신고한 대상입니다."),
   COMMUNITY_INVALID_PARENT_COMMENT(
       "COMMUNITY_INVALID_PARENT_COMMENT", "다른 게시글의 댓글에는 답글을 작성할 수 없습니다."),
+  COMMUNITY_IMAGE_COUNT_EXCEEDED("COMMUNITY_IMAGE_COUNT_EXCEEDED", "이미지는 최대 5장까지 업로드할 수 있습니다."),
+  COMMUNITY_INVALID_IMAGE_FILE("COMMUNITY_INVALID_IMAGE_FILE", "이미지 파일만 업로드할 수 있습니다."),
+  COMMUNITY_IMAGE_UPLOAD_ERROR("COMMUNITY_IMAGE_UPLOAD_ERROR", "이미지를 저장하는 중 에러가 발생했습니다."),
   ;
 
   private final String code;
