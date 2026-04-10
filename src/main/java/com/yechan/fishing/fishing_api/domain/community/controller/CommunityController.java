@@ -1,7 +1,8 @@
 package com.yechan.fishing.fishing_api.domain.community.controller;
 
+import com.yechan.fishing.fishing_api.domain.auth.security.AuthenticatedUser;
+import com.yechan.fishing.fishing_api.domain.auth.security.CurrentUser;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityCommentItem;
-import com.yechan.fishing.fishing_api.domain.community.dto.CommunityLikeRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityLikeResponse;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostDefaultsResponse;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostDetailResponse;
@@ -15,7 +16,6 @@ import com.yechan.fishing.fishing_api.domain.community.service.CommunityPostDefa
 import com.yechan.fishing.fishing_api.domain.community.service.CommunityService;
 import com.yechan.fishing.fishing_api.global.response.ApiResponse;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -45,14 +44,15 @@ public class CommunityController {
   }
 
   @GetMapping("/posts")
-  public ApiResponse<CommunityPostsResponse> getPosts(@Valid CommunityPostsRequest request) {
-    return ApiResponse.success(communityService.getPosts(request));
+  public ApiResponse<CommunityPostsResponse> getPosts(
+      @Valid CommunityPostsRequest request, @CurrentUser(required = false) AuthenticatedUser user) {
+    return ApiResponse.success(communityService.getPosts(request, currentUserId(user)));
   }
 
   @GetMapping("/posts/{postId}")
   public ApiResponse<CommunityPostDetailResponse> getPost(
-      @PathVariable Long postId, @RequestParam(required = false) Long viewerUserId) {
-    return ApiResponse.success(communityService.getPost(postId, viewerUserId));
+      @PathVariable Long postId, @CurrentUser(required = false) AuthenticatedUser user) {
+    return ApiResponse.success(communityService.getPost(postId, currentUserId(user)));
   }
 
   @PostMapping(value = "/posts/defaults", consumes = "multipart/form-data")
@@ -63,9 +63,10 @@ public class CommunityController {
 
   @PostMapping(value = "/posts", consumes = "multipart/form-data")
   public ApiResponse<CommunityPostDetailResponse> createPost(
+      @CurrentUser AuthenticatedUser user,
       @Valid @RequestPart("request") CreateCommunityPostRequest request,
       @RequestPart(value = "images", required = false) List<MultipartFile> images) {
-    return ApiResponse.success(communityService.createPost(request, images));
+    return ApiResponse.success(communityService.createPost(user.id(), request, images));
   }
 
   @GetMapping("/posts/{postId}/comments")
@@ -75,31 +76,41 @@ public class CommunityController {
 
   @PostMapping("/posts/{postId}/comments")
   public ApiResponse<CommunityCommentItem> createComment(
-      @PathVariable Long postId, @Valid @RequestBody CreateCommunityCommentRequest request) {
-    return ApiResponse.success(communityService.createComment(postId, request));
+      @PathVariable Long postId,
+      @CurrentUser AuthenticatedUser user,
+      @Valid @RequestBody CreateCommunityCommentRequest request) {
+    return ApiResponse.success(communityService.createComment(postId, user.id(), request));
   }
 
   @PostMapping("/posts/{postId}/likes")
   public ApiResponse<CommunityLikeResponse> likePost(
-      @PathVariable Long postId, @Valid @RequestBody CommunityLikeRequest request) {
-    return ApiResponse.success(communityService.likePost(postId, request.userId()));
+      @PathVariable Long postId, @CurrentUser AuthenticatedUser user) {
+    return ApiResponse.success(communityService.likePost(postId, user.id()));
   }
 
   @DeleteMapping("/posts/{postId}/likes")
   public ApiResponse<CommunityLikeResponse> unlikePost(
-      @PathVariable Long postId, @RequestParam @NotNull Long userId) {
-    return ApiResponse.success(communityService.unlikePost(postId, userId));
+      @PathVariable Long postId, @CurrentUser AuthenticatedUser user) {
+    return ApiResponse.success(communityService.unlikePost(postId, user.id()));
   }
 
   @PostMapping("/posts/{postId}/reports")
   public ApiResponse<CommunityReportResponse> reportPost(
-      @PathVariable Long postId, @Valid @RequestBody CommunityReportRequest request) {
-    return ApiResponse.success(communityService.reportPost(postId, request));
+      @PathVariable Long postId,
+      @CurrentUser AuthenticatedUser user,
+      @Valid @RequestBody CommunityReportRequest request) {
+    return ApiResponse.success(communityService.reportPost(postId, user.id(), request));
   }
 
   @PostMapping("/comments/{commentId}/reports")
   public ApiResponse<CommunityReportResponse> reportComment(
-      @PathVariable Long commentId, @Valid @RequestBody CommunityReportRequest request) {
-    return ApiResponse.success(communityService.reportComment(commentId, request));
+      @PathVariable Long commentId,
+      @CurrentUser AuthenticatedUser user,
+      @Valid @RequestBody CommunityReportRequest request) {
+    return ApiResponse.success(communityService.reportComment(commentId, user.id(), request));
+  }
+
+  private Long currentUserId(AuthenticatedUser user) {
+    return user == null ? null : user.id();
   }
 }

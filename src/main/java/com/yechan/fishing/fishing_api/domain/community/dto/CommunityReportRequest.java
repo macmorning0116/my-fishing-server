@@ -5,6 +5,4 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record CommunityReportRequest(
-    @NotNull Long userId,
-    @NotNull ReportReasonType reasonType,
-    @Size(max = 1000) String reasonDetail) {}
+    @NotNull ReportReasonType reasonType, @Size(max = 1000) String reasonDetail) {}

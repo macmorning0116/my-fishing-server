@@ -80,7 +80,7 @@ public class CommunityService {
   }
 
   @Transactional(readOnly = true)
-  public CommunityPostsResponse getPosts(CommunityPostsRequest request) {
+  public CommunityPostsResponse getPosts(CommunityPostsRequest request, Long viewerUserId) {
     int size = request.safeSize();
     List<CommunityPost> posts =
         request.cursor() == null
@@ -91,7 +91,7 @@ public class CommunityService {
 
     List<Long> postIds = posts.stream().map(CommunityPost::getId).toList();
     Map<Long, List<CommunityPostImage>> imagesByPostId = loadImagesByPostId(postIds);
-    Map<Long, Boolean> likedByPostId = loadLikedByPostId(request.viewerUserId(), postIds);
+    Map<Long, Boolean> likedByPostId = loadLikedByPostId(viewerUserId, postIds);
 
     List<CommunityPostItem> items = new ArrayList<>();
     for (CommunityPost post : posts) {
@@ -121,8 +121,8 @@ public class CommunityService {
 
   @Transactional
   public CommunityPostDetailResponse createPost(
-      CreateCommunityPostRequest request, List<MultipartFile> imageFiles) {
-    User user = getUser(request.userId());
+      Long userId, CreateCommunityPostRequest request, List<MultipartFile> imageFiles) {
+    User user = getUser(userId);
     LocalDateTime now = LocalDateTime.now();
     List<StoredCommunityImage> storedImages = imageStorageService.storeCommunityImages(imageFiles);
 
@@ -168,9 +168,10 @@ public class CommunityService {
   }
 
   @Transactional
-  public CommunityCommentItem createComment(Long postId, CreateCommunityCommentRequest request) {
+  public CommunityCommentItem createComment(
+      Long postId, Long userId, CreateCommunityCommentRequest request) {
     CommunityPost post = getVisiblePost(postId);
-    User user = getUser(request.userId());
+    User user = getUser(userId);
     CommunityComment parentComment = null;
 
     if (request.parentCommentId() != null) {
@@ -235,9 +236,10 @@ public class CommunityService {
   }
 
   @Transactional
-  public CommunityReportResponse reportPost(Long postId, CommunityReportRequest request) {
+  public CommunityReportResponse reportPost(
+      Long postId, Long reporterUserId, CommunityReportRequest request) {
     CommunityPost post = getPostOrThrow(postId);
-    CommunityReport report = createReport(ReportTargetType.POST, postId, request);
+    CommunityReport report = createReport(ReportTargetType.POST, postId, reporterUserId, request);
 
     post.incrementReportCount();
     applyAutoHide(post);
@@ -247,9 +249,11 @@ public class CommunityService {
   }
 
   @Transactional
-  public CommunityReportResponse reportComment(Long commentId, CommunityReportRequest request) {
+  public CommunityReportResponse reportComment(
+      Long commentId, Long reporterUserId, CommunityReportRequest request) {
     CommunityComment comment = getCommentOrThrow(commentId);
-    CommunityReport report = createReport(ReportTargetType.COMMENT, commentId, request);
+    CommunityReport report =
+        createReport(ReportTargetType.COMMENT, commentId, reporterUserId, request);
 
     comment.incrementReportCount();
     applyAutoHide(comment);
@@ -259,8 +263,11 @@ public class CommunityService {
   }
 
   private CommunityReport createReport(
-      ReportTargetType targetType, Long targetId, CommunityReportRequest request) {
-    User reporter = getUser(request.userId());
+      ReportTargetType targetType,
+      Long targetId,
+      Long reporterUserId,
+      CommunityReportRequest request) {
+    User reporter = getUser(reporterUserId);
 
     if (communityReportRepository.existsByReporterUser_IdAndTargetTypeAndTargetId(
         reporter.getId(), targetType, targetId)) {
