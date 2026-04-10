@@ -2,6 +2,7 @@ package com.yechan.fishing.fishing_api.domain.user.controller;
 
 import com.yechan.fishing.fishing_api.domain.auth.cookie.RefreshTokenCookieManager;
 import com.yechan.fishing.fishing_api.domain.auth.dto.AuthTokenResponse;
+import com.yechan.fishing.fishing_api.domain.auth.dto.AuthUserResponse;
 import com.yechan.fishing.fishing_api.domain.auth.security.AuthenticatedUser;
 import com.yechan.fishing.fishing_api.domain.auth.security.CurrentUser;
 import com.yechan.fishing.fishing_api.domain.auth.service.AuthSessionResult;
@@ -34,6 +35,11 @@ public class UserController {
       UserService userService, RefreshTokenCookieManager refreshTokenCookieManager) {
     this.userService = userService;
     this.refreshTokenCookieManager = refreshTokenCookieManager;
+  }
+
+  @GetMapping("/me")
+  public ApiResponse<AuthUserResponse> getMe(@CurrentUser AuthenticatedUser user) {
+    return ApiResponse.success(userService.getMe(user.id()));
   }
 
   @GetMapping("/nickname/check")

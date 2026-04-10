@@ -24,6 +24,19 @@ public class UserService {
     this.jwtTokenProvider = jwtTokenProvider;
   }
 
+  public AuthUserResponse getMe(Long userId) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new FishingException(ErrorCode.USER_NOT_FOUND));
+    return new AuthUserResponse(
+        user.getId(),
+        user.getNickname(),
+        user.getProfileImageUrl(),
+        user.getRole(),
+        user.getStatus());
+  }
+
   public boolean isNicknameAvailable(String nickname) {
     return !userRepository.existsByNickname(nickname);
   }
