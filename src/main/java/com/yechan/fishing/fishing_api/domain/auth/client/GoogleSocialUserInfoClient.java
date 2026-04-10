@@ -39,7 +39,7 @@ public class GoogleSocialUserInfoClient implements SocialUserInfoClient {
         .queryParam("state", state)
         .queryParam("access_type", "offline")
         .queryParam("include_granted_scopes", "true")
-        .build(true)
+        .build(false)
         .toUriString();
   }
 
