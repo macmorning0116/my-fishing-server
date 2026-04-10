@@ -6,6 +6,13 @@ public enum ErrorCode {
   INVALID_COORD("INVALID_COORD", "위도/경도가 올바르지 않습니다."),
   INTERNAL_SERVER_ERROR("INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."),
   USER_NOT_FOUND("USER_NOT_FOUND", "사용자를 찾을 수 없습니다."),
+  AUTH_PROVIDER_NOT_SUPPORTED("AUTH_PROVIDER_NOT_SUPPORTED", "지원하지 않는 로그인 제공자입니다."),
+  AUTH_SOCIAL_USER_INFO_ERROR("AUTH_SOCIAL_USER_INFO_ERROR", "소셜 사용자 정보를 불러오는 중 에러가 발생했습니다."),
+  AUTH_LOGIN_REQUIRED("AUTH_LOGIN_REQUIRED", "로그인이 필요합니다."),
+  AUTH_INVALID_TOKEN("AUTH_INVALID_TOKEN", "유효하지 않은 토큰입니다."),
+  AUTH_INVALID_REFRESH_TOKEN("AUTH_INVALID_REFRESH_TOKEN", "유효하지 않은 리프레시 토큰입니다."),
+  AUTH_REFRESH_TOKEN_NOT_FOUND("AUTH_REFRESH_TOKEN_NOT_FOUND", "리프레시 토큰을 찾을 수 없습니다."),
+  AUTH_USER_INACTIVE("AUTH_USER_INACTIVE", "활성 상태의 사용자가 아닙니다."),
 
   // 네이버
   NAVER_API_ERROR("NAVER_API_ERROR", "주소 변환에 실패했습니다."),
