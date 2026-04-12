@@ -17,5 +17,7 @@ public interface CommunityCommentRepository extends JpaRepository<CommunityComme
   List<CommunityComment> findAllByPost_IdAndVisibilityStatusOrderByCreatedAtAsc(
       Long postId, VisibilityStatus visibilityStatus);
 
+  List<CommunityComment> findAllByPost_IdOrderByCreatedAtAsc(Long postId);
+
   Optional<CommunityComment> findByIdAndPost_Id(Long commentId, Long postId);
 }

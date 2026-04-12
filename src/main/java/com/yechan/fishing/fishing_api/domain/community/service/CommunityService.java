@@ -176,8 +176,7 @@ public class CommunityService {
   public List<CommunityCommentItem> getComments(Long postId) {
     getVisiblePost(postId);
     List<CommunityComment> comments =
-        communityCommentRepository.findAllByPost_IdAndVisibilityStatusOrderByCreatedAtAsc(
-            postId, VisibilityStatus.VISIBLE);
+        communityCommentRepository.findAllByPost_IdOrderByCreatedAtAsc(postId);
     return comments.stream().map(this::toCommentItem).toList();
   }
 
@@ -423,6 +422,7 @@ public class CommunityService {
   }
 
   private CommunityCommentItem toCommentItem(CommunityComment comment) {
+    boolean deleted = comment.getDeletedAt() != null;
     return new CommunityCommentItem(
         comment.getId(),
         comment.getUser().getId(),
@@ -431,10 +431,11 @@ public class CommunityService {
         comment.getParentComment() == null ? null : comment.getParentComment().getId(),
         comment.getReplyToUser() == null ? null : comment.getReplyToUser().getId(),
         comment.getReplyToUser() == null ? null : comment.getReplyToUser().getNickname(),
-        comment.getContent(),
+        deleted ? null : comment.getContent(),
         comment.getLikeCount(),
         comment.getCreatedAt(),
-        comment.getUpdatedAt());
+        comment.getUpdatedAt(),
+        deleted);
   }
 
   private CommunityPost getVisiblePost(Long postId) {
@@ -478,7 +479,6 @@ public class CommunityService {
       throw new FishingException(ErrorCode.COMMUNITY_COMMENT_DELETED);
     }
     comment.softDelete(LocalDateTime.now());
-    communityPostRepository.decrementCommentCount(comment.getPost().getId());
   }
 
   private User getUser(Long userId) {

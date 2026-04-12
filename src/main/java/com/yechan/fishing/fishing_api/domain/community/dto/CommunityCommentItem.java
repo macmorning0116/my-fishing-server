@@ -13,4 +13,5 @@ public record CommunityCommentItem(
     String content,
     Integer likeCount,
     LocalDateTime createdAt,
-    LocalDateTime updatedAt) {}
+    LocalDateTime updatedAt,
+    boolean deleted) {}
