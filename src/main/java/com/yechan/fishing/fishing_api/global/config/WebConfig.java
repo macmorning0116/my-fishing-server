@@ -59,10 +59,7 @@ public class WebConfig implements WebMvcConfigurer {
 
   @Override
   public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-    CurrentUserArgumentResolver resolver = currentUserArgumentResolverProvider.getIfAvailable();
-    if (resolver != null) {
-      resolvers.add(resolver);
-    }
+    currentUserArgumentResolverProvider.ifAvailable(resolvers::add);
   }
 
   @Bean
@@ -80,7 +77,6 @@ public class WebConfig implements WebMvcConfigurer {
   }
 
   @Bean
-  @ConditionalOnBean(UserRepository.class)
   public CurrentUserArgumentResolver currentUserArgumentResolver(UserRepository userRepository) {
     return new CurrentUserArgumentResolver(userRepository);
   }

@@ -82,6 +82,16 @@ public class CommunityComment {
     reportCount = reportCount + 1;
   }
 
+  public void updateContent(String content, LocalDateTime now) {
+    this.content = content;
+    this.updatedAt = now;
+  }
+
+  public void softDelete(LocalDateTime now) {
+    this.deletedAt = now;
+    this.updatedAt = now;
+  }
+
   public void hide(VisibilityReason reason, LocalDateTime now) {
     visibilityStatus = VisibilityStatus.HIDDEN;
     visibilityReason = reason;

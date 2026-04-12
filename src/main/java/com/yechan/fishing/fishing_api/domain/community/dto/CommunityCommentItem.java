@@ -12,4 +12,5 @@ public record CommunityCommentItem(
     String replyToNickname,
     String content,
     Integer likeCount,
-    LocalDateTime createdAt) {}
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt) {}

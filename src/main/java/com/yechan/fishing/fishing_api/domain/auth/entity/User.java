@@ -74,6 +74,9 @@ public class User {
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
 
+  @Column(name = "nickname_changed_at")
+  private LocalDateTime nicknameChangedAt;
+
   public static User create(
       AuthProvider provider,
       String providerUserId,
@@ -120,6 +123,24 @@ public class User {
 
   public boolean isPending() {
     return status == UserStatus.PENDING;
+  }
+
+  public boolean needsProfileSetup() {
+    return status == UserStatus.PENDING;
+  }
+
+  public void updateNickname(String nickname, LocalDateTime now) {
+    if (nicknameChangedAt != null && nicknameChangedAt.plusDays(30).isAfter(now)) {
+      throw new FishingException(ErrorCode.USER_NICKNAME_COOLDOWN);
+    }
+    this.nickname = nickname;
+    this.nicknameChangedAt = now;
+    this.updatedAt = now;
+  }
+
+  public void updateProfileImage(String profileImageUrl, LocalDateTime now) {
+    this.profileImageUrl = profileImageUrl;
+    this.updatedAt = now;
   }
 
   public void incrementReportCount() {

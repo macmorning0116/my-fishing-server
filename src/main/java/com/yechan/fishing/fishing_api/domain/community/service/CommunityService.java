@@ -82,12 +82,26 @@ public class CommunityService {
   @Transactional(readOnly = true)
   public CommunityPostsResponse getPosts(CommunityPostsRequest request, Long viewerUserId) {
     int size = request.safeSize();
-    List<CommunityPost> posts =
-        request.cursor() == null
-            ? communityPostRepository.findAllByVisibilityStatusOrderByIdDesc(
-                VisibilityStatus.VISIBLE, PageRequest.of(0, size))
-            : communityPostRepository.findAllByVisibilityStatusAndIdLessThanOrderByIdDesc(
-                VisibilityStatus.VISIBLE, request.cursor(), PageRequest.of(0, size));
+    List<CommunityPost> posts;
+    if (request.authorId() != null) {
+      posts =
+          request.cursor() == null
+              ? communityPostRepository.findAllByUser_IdAndVisibilityStatusOrderByIdDesc(
+                  request.authorId(), VisibilityStatus.VISIBLE, PageRequest.of(0, size))
+              : communityPostRepository
+                  .findAllByUser_IdAndVisibilityStatusAndIdLessThanOrderByIdDesc(
+                      request.authorId(),
+                      VisibilityStatus.VISIBLE,
+                      request.cursor(),
+                      PageRequest.of(0, size));
+    } else {
+      posts =
+          request.cursor() == null
+              ? communityPostRepository.findAllByVisibilityStatusOrderByIdDesc(
+                  VisibilityStatus.VISIBLE, PageRequest.of(0, size))
+              : communityPostRepository.findAllByVisibilityStatusAndIdLessThanOrderByIdDesc(
+                  VisibilityStatus.VISIBLE, request.cursor(), PageRequest.of(0, size));
+    }
 
     List<Long> postIds = posts.stream().map(CommunityPost::getId).toList();
     Map<Long, List<CommunityPostImage>> imagesByPostId = loadImagesByPostId(postIds);
@@ -202,7 +216,7 @@ public class CommunityService {
                 .updatedAt(now)
                 .build());
 
-    post.incrementCommentCount();
+    communityPostRepository.incrementCommentCount(post.getId());
     return toCommentItem(comment);
   }
 
@@ -214,10 +228,11 @@ public class CommunityService {
     if (!communityPostLikeRepository.existsByPost_IdAndUser_Id(postId, userId)) {
       communityPostLikeRepository.save(
           CommunityPostLike.builder().post(post).user(user).createdAt(LocalDateTime.now()).build());
-      post.incrementLikeCount();
+      communityPostRepository.incrementLikeCount(postId);
     }
 
-    return new CommunityLikeResponse(true, post.getLikeCount());
+    long likeCount = communityPostLikeRepository.countByPost_Id(postId);
+    return new CommunityLikeResponse(true, (int) likeCount);
   }
 
   @Transactional
@@ -229,10 +244,11 @@ public class CommunityService {
         .ifPresent(
             like -> {
               communityPostLikeRepository.delete(like);
-              post.decrementLikeCount();
+              communityPostRepository.decrementLikeCount(postId);
             });
 
-    return new CommunityLikeResponse(false, post.getLikeCount());
+    long likeCount = communityPostLikeRepository.countByPost_Id(postId);
+    return new CommunityLikeResponse(false, (int) likeCount);
   }
 
   @Transactional
@@ -241,8 +257,8 @@ public class CommunityService {
     CommunityPost post = getPostOrThrow(postId);
     CommunityReport report = createReport(ReportTargetType.POST, postId, reporterUserId, request);
 
-    post.incrementReportCount();
-    applyAutoHide(post);
+    communityPostRepository.incrementReportCount(postId);
+    communityPostRepository.findById(postId).ifPresent(this::applyAutoHide);
 
     return new CommunityReportResponse(
         report.getId(), report.getStatus(), post.getVisibilityStatus());
@@ -255,8 +271,8 @@ public class CommunityService {
     CommunityReport report =
         createReport(ReportTargetType.COMMENT, commentId, reporterUserId, request);
 
-    comment.incrementReportCount();
-    applyAutoHide(comment);
+    communityCommentRepository.incrementReportCount(commentId);
+    communityCommentRepository.findById(commentId).ifPresent(this::applyAutoHide);
 
     return new CommunityReportResponse(
         report.getId(), report.getStatus(), comment.getVisibilityStatus());
@@ -417,7 +433,8 @@ public class CommunityService {
         comment.getReplyToUser() == null ? null : comment.getReplyToUser().getNickname(),
         comment.getContent(),
         comment.getLikeCount(),
-        comment.getCreatedAt());
+        comment.getCreatedAt(),
+        comment.getUpdatedAt());
   }
 
   private CommunityPost getVisiblePost(Long postId) {
@@ -436,6 +453,32 @@ public class CommunityService {
     return communityCommentRepository
         .findById(commentId)
         .orElseThrow(() -> new FishingException(ErrorCode.COMMUNITY_COMMENT_NOT_FOUND));
+  }
+
+  @Transactional
+  public CommunityCommentItem editComment(Long commentId, Long userId, String content) {
+    CommunityComment comment = getCommentOrThrow(commentId);
+    if (!comment.getUser().getId().equals(userId)) {
+      throw new FishingException(ErrorCode.COMMUNITY_COMMENT_FORBIDDEN);
+    }
+    if (comment.getDeletedAt() != null) {
+      throw new FishingException(ErrorCode.COMMUNITY_COMMENT_DELETED);
+    }
+    comment.updateContent(content.trim(), LocalDateTime.now());
+    return toCommentItem(comment);
+  }
+
+  @Transactional
+  public void deleteComment(Long commentId, Long userId) {
+    CommunityComment comment = getCommentOrThrow(commentId);
+    if (!comment.getUser().getId().equals(userId)) {
+      throw new FishingException(ErrorCode.COMMUNITY_COMMENT_FORBIDDEN);
+    }
+    if (comment.getDeletedAt() != null) {
+      throw new FishingException(ErrorCode.COMMUNITY_COMMENT_DELETED);
+    }
+    comment.softDelete(LocalDateTime.now());
+    communityPostRepository.decrementCommentCount(comment.getPost().getId());
   }
 
   private User getUser(Long userId) {

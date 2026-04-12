@@ -127,7 +127,7 @@ class CommunityControllerTest {
   void likePost_withoutAccessToken_returnsLoginRequired() throws Exception {
     mockMvc
         .perform(post("/v1/community/posts/10/likes"))
-        .andExpect(status().isOk())
+        .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.success").value(false))
         .andExpect(jsonPath("$.error.code").value("AUTH_LOGIN_REQUIRED"));
   }

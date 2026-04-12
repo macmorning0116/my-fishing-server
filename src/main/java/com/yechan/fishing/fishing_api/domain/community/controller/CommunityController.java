@@ -12,6 +12,7 @@ import com.yechan.fishing.fishing_api.domain.community.dto.CommunityReportReques
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityReportResponse;
 import com.yechan.fishing.fishing_api.domain.community.dto.CreateCommunityCommentRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.CreateCommunityPostRequest;
+import com.yechan.fishing.fishing_api.domain.community.dto.UpdateCommunityCommentRequest;
 import com.yechan.fishing.fishing_api.domain.community.service.CommunityPostDefaultsService;
 import com.yechan.fishing.fishing_api.domain.community.service.CommunityService;
 import com.yechan.fishing.fishing_api.global.response.ApiResponse;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -100,6 +102,22 @@ public class CommunityController {
       @CurrentUser AuthenticatedUser user,
       @Valid @RequestBody CommunityReportRequest request) {
     return ApiResponse.success(communityService.reportPost(postId, user.id(), request));
+  }
+
+  @PutMapping("/comments/{commentId}")
+  public ApiResponse<CommunityCommentItem> editComment(
+      @PathVariable Long commentId,
+      @CurrentUser AuthenticatedUser user,
+      @Valid @RequestBody UpdateCommunityCommentRequest request) {
+    return ApiResponse.success(
+        communityService.editComment(commentId, user.id(), request.content()));
+  }
+
+  @DeleteMapping("/comments/{commentId}")
+  public ApiResponse<Void> deleteComment(
+      @PathVariable Long commentId, @CurrentUser AuthenticatedUser user) {
+    communityService.deleteComment(commentId, user.id());
+    return ApiResponse.success(null);
   }
 
   @PostMapping("/comments/{commentId}/reports")

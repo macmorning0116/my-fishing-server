@@ -81,6 +81,7 @@ class AuthServiceTest {
     assertEquals("refresh-token", result.refreshToken());
     assertEquals(1L, result.response().user().id());
     assertEquals("앵글러", result.response().user().nickname());
+    assertEquals(true, result.response().user().needsProfileSetup());
     then(userRefreshTokenRepository).should().save(any(UserRefreshToken.class));
   }
 
@@ -164,6 +165,7 @@ class AuthServiceTest {
     assertEquals("new-refresh-token", result.refreshToken());
     assertNotNull(savedToken.getRevokedAt());
     assertEquals(UserStatus.PENDING, result.response().user().status());
+    assertEquals(true, result.response().user().needsProfileSetup());
   }
 
   @Test

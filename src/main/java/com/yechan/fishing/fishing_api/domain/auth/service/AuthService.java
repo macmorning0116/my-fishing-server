@@ -186,6 +186,10 @@ public class AuthService {
                 user.getNickname(),
                 user.getProfileImageUrl(),
                 user.getRole(),
-                user.getStatus())));
+                user.getStatus(),
+                user.needsProfileSetup(),
+                user.getEmail(),
+                user.getProvider(),
+                user.getNicknameChangedAt())));
   }
 }

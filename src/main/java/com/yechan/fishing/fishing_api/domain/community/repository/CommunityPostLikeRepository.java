@@ -12,6 +12,8 @@ public interface CommunityPostLikeRepository extends JpaRepository<CommunityPost
 
   boolean existsByPost_IdAndUser_Id(Long postId, Long userId);
 
+  long countByPost_Id(Long postId);
+
   Optional<CommunityPostLike> findByPost_IdAndUser_Id(Long postId, Long userId);
 
   @Query(

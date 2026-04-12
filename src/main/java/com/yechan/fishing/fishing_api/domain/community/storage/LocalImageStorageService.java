@@ -92,6 +92,39 @@ public class LocalImageStorageService implements ImageStorageService {
     return storedImages;
   }
 
+  @Override
+  public String storeProfileImage(MultipartFile file) {
+    validateImageFile(file);
+
+    Path uploadDir =
+        Path.of(storageProperties.getLocalRoot())
+            .resolve("profiles")
+            .resolve(LocalDate.now().format(DATE_PATH_FORMAT));
+
+    try {
+      Files.createDirectories(uploadDir);
+    } catch (IOException e) {
+      throw new FishingException(ErrorCode.COMMUNITY_IMAGE_UPLOAD_ERROR);
+    }
+
+    String extension = resolveExtension(file);
+    String storedFileName = UUID.randomUUID() + extension;
+    Path destination = uploadDir.resolve(storedFileName);
+
+    try {
+      file.transferTo(destination);
+    } catch (IOException e) {
+      throw new FishingException(ErrorCode.COMMUNITY_IMAGE_UPLOAD_ERROR);
+    }
+
+    String relativePrefix = "profiles/" + LocalDate.now().format(DATE_PATH_FORMAT);
+    return normalizePublicBasePath(storageProperties.getPublicBasePath())
+        + "/"
+        + relativePrefix
+        + "/"
+        + storedFileName;
+  }
+
   private void validateImageFile(MultipartFile file) {
     if (file == null || file.isEmpty()) {
       throw new FishingException(ErrorCode.COMMUNITY_INVALID_IMAGE_FILE);

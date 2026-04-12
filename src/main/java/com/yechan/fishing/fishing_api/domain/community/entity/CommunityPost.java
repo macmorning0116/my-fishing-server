@@ -132,6 +132,10 @@ public class CommunityPost {
     commentCount = commentCount + 1;
   }
 
+  public void decrementCommentCount() {
+    commentCount = Math.max(0, commentCount - 1);
+  }
+
   public void incrementReportCount() {
     reportCount = reportCount + 1;
   }

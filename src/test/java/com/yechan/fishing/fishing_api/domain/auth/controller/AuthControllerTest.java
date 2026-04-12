@@ -49,7 +49,15 @@ class AuthControllerTest {
                 LocalDateTime.of(2026, 4, 10, 17, 0),
                 LocalDateTime.of(2026, 4, 24, 17, 0),
                 new AuthUserResponse(
-                    1L, "앵글러", "https://image", UserRole.USER, UserStatus.ACTIVE)));
+                    1L,
+                    "앵글러",
+                    "https://image",
+                    UserRole.USER,
+                    UserStatus.ACTIVE,
+                    false,
+                    "test@test.com",
+                    AuthProvider.KAKAO,
+                    null)));
 
     given(authService.loginWithAuthorizationCode(any(), any(), any())).willReturn(result);
 
@@ -93,7 +101,15 @@ class AuthControllerTest {
                 LocalDateTime.of(2026, 4, 10, 17, 0),
                 LocalDateTime.of(2026, 4, 24, 17, 0),
                 new AuthUserResponse(
-                    1L, "앵글러", "https://image", UserRole.USER, UserStatus.ACTIVE)));
+                    1L,
+                    "앵글러",
+                    "https://image",
+                    UserRole.USER,
+                    UserStatus.ACTIVE,
+                    false,
+                    "test@test.com",
+                    AuthProvider.KAKAO,
+                    null)));
 
     given(refreshTokenCookieManager.extractRefreshToken(any())).willReturn("refresh-token");
     given(authService.refresh("refresh-token", "ios")).willReturn(result);

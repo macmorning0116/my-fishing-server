@@ -56,6 +56,8 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
       user.ensureActive();
     }
 
+    System.out.println(
+        "[DEBUG] CurrentUserArgumentResolver - userId=" + user.getId() + " role=" + user.getRole());
     return new AuthenticatedUser(user.getId(), user.getRole());
   }
 }
