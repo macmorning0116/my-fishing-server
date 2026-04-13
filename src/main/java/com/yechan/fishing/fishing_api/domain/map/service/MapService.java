@@ -19,7 +19,7 @@ public class MapService {
 
   public MapService(
       NaverReverseGeocodeClient naverClient,
-      @Value("${auth.kakao.client-id:}") String kakaoRestApiKey) {
+      @Value("${kakao.api.rest-key}") String kakaoRestApiKey) {
     this.naverClient = naverClient;
     this.kakaoWebClient =
         WebClient.builder()
