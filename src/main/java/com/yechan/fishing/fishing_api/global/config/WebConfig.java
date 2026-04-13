@@ -78,9 +78,13 @@ public class WebConfig implements WebMvcConfigurer {
   }
 
   @Bean
-  @ConditionalOnBean(UserRepository.class)
-  public CurrentUserArgumentResolver currentUserArgumentResolver(UserRepository userRepository) {
-    return new CurrentUserArgumentResolver(userRepository);
+  public CurrentUserArgumentResolver currentUserArgumentResolver(
+      ObjectProvider<UserRepository> userRepositoryProvider) {
+    UserRepository repo = userRepositoryProvider.getIfAvailable();
+    if (repo == null) {
+      return null;
+    }
+    return new CurrentUserArgumentResolver(repo);
   }
 
   @Bean
