@@ -2,6 +2,7 @@ package com.yechan.fishing.fishing_api.domain.community.storage;
 
 import com.yechan.fishing.fishing_api.global.exception.ErrorCode;
 import com.yechan.fishing.fishing_api.global.exception.FishingException;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -9,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -17,6 +19,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 public class S3ImageStorageService implements ImageStorageService {
 
   private static final int MAX_IMAGE_COUNT = 5;
+  private static final int THUMBNAIL_SIZE = 400;
   private static final DateTimeFormatter DATE_PATH_FORMAT =
       DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
@@ -40,14 +43,28 @@ public class S3ImageStorageService implements ImageStorageService {
     }
 
     List<StoredCommunityImage> stored = new ArrayList<>();
+    String datePath = datePath();
     for (int index = 0; index < files.size(); index++) {
       MultipartFile file = files.get(index);
       validateImageFile(file);
-      String key = "community/" + datePath() + "/" + uuid() + extension(file);
-      upload(file, key);
+
+      String id = uuid();
+      String ext = extension(file);
+      String originalKey = "community/" + datePath + "/" + id + ext;
+      String thumbKey = "community/" + datePath + "/" + id + "_thumb.jpg";
+
+      upload(file, originalKey);
+      String thumbnailUrl = generateAndUploadThumbnail(file, thumbKey);
+
       stored.add(
           new StoredCommunityImage(
-              baseUrl + "/" + key, index, file.getContentType(), file.getSize(), null, null));
+              baseUrl + "/" + originalKey,
+              thumbnailUrl,
+              index,
+              file.getContentType(),
+              file.getSize(),
+              null,
+              null));
     }
     return stored;
   }
@@ -58,6 +75,26 @@ public class S3ImageStorageService implements ImageStorageService {
     String key = "profiles/" + datePath() + "/" + uuid() + extension(file);
     upload(file, key);
     return baseUrl + "/" + key;
+  }
+
+  private String generateAndUploadThumbnail(MultipartFile file, String thumbKey) {
+    try {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      Thumbnails.of(file.getInputStream())
+          .size(THUMBNAIL_SIZE, THUMBNAIL_SIZE)
+          .outputFormat("jpg")
+          .outputQuality(0.8)
+          .toOutputStream(baos);
+
+      byte[] thumbBytes = baos.toByteArray();
+      PutObjectRequest request =
+          PutObjectRequest.builder().bucket(bucket).key(thumbKey).contentType("image/jpeg").build();
+      s3Client.putObject(request, RequestBody.fromBytes(thumbBytes));
+      return baseUrl + "/" + thumbKey;
+    } catch (IOException e) {
+      // 썸네일 생성 실패 시 원본 URL을 fallback으로 사용
+      return null;
+    }
   }
 
   private void upload(MultipartFile file, String key) {

@@ -13,11 +13,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import javax.imageio.ImageIO;
+import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.web.multipart.MultipartFile;
 
 public class LocalImageStorageService implements ImageStorageService {
 
   private static final int MAX_IMAGE_COUNT = 5;
+  private static final int THUMBNAIL_SIZE = 400;
   private static final DateTimeFormatter DATE_PATH_FORMAT =
       DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
@@ -75,6 +77,19 @@ public class LocalImageStorageService implements ImageStorageService {
         // 이미지 메타 정보 추출 실패는 업로드 자체를 막지 않습니다.
       }
 
+      // 썸네일 생성
+      String thumbFileName =
+          storedFileName.substring(0, storedFileName.lastIndexOf('.')) + "_thumb.jpg";
+      String thumbnailUrl = generateThumbnail(destination, uploadDir.resolve(thumbFileName));
+      if (thumbnailUrl != null) {
+        thumbnailUrl =
+            normalizePublicBasePath(storageProperties.getPublicBasePath())
+                + "/"
+                + relativePrefix
+                + "/"
+                + thumbFileName;
+      }
+
       String publicUrl =
           normalizePublicBasePath(storageProperties.getPublicBasePath())
               + "/"
@@ -84,7 +99,13 @@ public class LocalImageStorageService implements ImageStorageService {
 
       storedImages.add(
           new StoredCommunityImage(
-              publicUrl, index, file.getContentType(), file.getSize(), width, height));
+              publicUrl,
+              thumbnailUrl,
+              index,
+              file.getContentType(),
+              file.getSize(),
+              width,
+              height));
     }
 
     return storedImages;
@@ -121,6 +142,19 @@ public class LocalImageStorageService implements ImageStorageService {
         + relativePrefix
         + "/"
         + storedFileName;
+  }
+
+  private String generateThumbnail(Path source, Path thumbPath) {
+    try {
+      Thumbnails.of(source.toFile())
+          .size(THUMBNAIL_SIZE, THUMBNAIL_SIZE)
+          .outputFormat("jpg")
+          .outputQuality(0.8)
+          .toFile(thumbPath.toFile());
+      return thumbPath.toString();
+    } catch (IOException e) {
+      return null;
+    }
   }
 
   private void validateImageFile(MultipartFile file) {

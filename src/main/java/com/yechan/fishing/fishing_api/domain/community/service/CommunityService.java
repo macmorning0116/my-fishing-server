@@ -526,7 +526,9 @@ public class CommunityService {
     if (storedImages == null || storedImages.isEmpty()) {
       return null;
     }
-    return storedImages.get(0).imageUrl();
+    StoredCommunityImage first = storedImages.get(0);
+    // 썸네일이 있으면 썸네일 URL을, 없으면 원본 URL을 사용
+    return first.thumbnailUrl() != null ? first.thumbnailUrl() : first.imageUrl();
   }
 
   private String firstSavedImageUrl(List<CommunityPostImage> images) {
