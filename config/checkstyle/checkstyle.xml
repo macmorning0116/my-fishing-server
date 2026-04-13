@@ -1,0 +1,189 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+    Fishing API Checkstyle Configuration
+    Based on Google Java Style with project-specific additions.
+    Formatting is handled by Spotless (google-java-format).
+    Checkstyle focuses on conventions that formatters cannot enforce.
+-->
+<module name="Checker">
+  <property name="charset" value="UTF-8"/>
+  <property name="severity" value="warning"/>
+
+  <!-- Suppressions -->
+  <module name="SuppressionFilter">
+    <property name="file" value="${suppressionFile}"/>
+    <property name="optional" value="false"/>
+  </module>
+
+  <!-- File length -->
+  <module name="FileLength">
+    <property name="max" value="500"/>
+    <property name="severity" value="warning"/>
+  </module>
+
+  <!-- No trailing whitespace (also handled by Spotless, but safety net) -->
+  <module name="RegexpSingleline">
+    <property name="format" value="\s+$"/>
+    <property name="message" value="Trailing whitespace"/>
+  </module>
+
+  <!-- No tab characters -->
+  <module name="RegexpSingleline">
+    <property name="format" value="\t"/>
+    <property name="message" value="Tab character found, use spaces"/>
+  </module>
+
+  <module name="TreeWalker">
+
+    <!-- ==================== Naming Conventions ==================== -->
+
+    <!-- Class/Interface names: UpperCamelCase -->
+    <module name="TypeName">
+      <property name="format" value="^[A-Z][a-zA-Z0-9]*$"/>
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- Method names: lowerCamelCase -->
+    <module name="MethodName">
+      <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- Parameter names: lowerCamelCase -->
+    <module name="ParameterName">
+      <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- Local variable names: lowerCamelCase -->
+    <module name="LocalVariableName">
+      <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- Member variable names: lowerCamelCase -->
+    <module name="MemberName">
+      <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- Constant names: UPPER_SNAKE_CASE -->
+    <module name="ConstantName">
+      <property name="format" value="^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"/>
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- Package names: lowercase -->
+    <module name="PackageName">
+      <property name="format" value="^[a-z]+(\.[a-z_][a-z0-9_]*)*$"/>
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- ==================== Imports ==================== -->
+
+    <!-- No star imports -->
+    <module name="AvoidStarImport">
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- No unused imports -->
+    <module name="UnusedImports">
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- No redundant imports -->
+    <module name="RedundantImport">
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- ==================== Size / Complexity ==================== -->
+
+    <!-- Method length: max 50 lines -->
+    <module name="MethodLength">
+      <property name="max" value="50"/>
+      <property name="severity" value="warning"/>
+    </module>
+
+    <!-- Parameter count: max 7 -->
+    <module name="ParameterNumber">
+      <property name="max" value="7"/>
+      <property name="severity" value="warning"/>
+      <property name="tokens" value="METHOD_DEF"/>
+    </module>
+
+    <!-- ==================== Coding ==================== -->
+
+    <!-- Avoid empty statements (stray semicolons) -->
+    <module name="EmptyStatement">
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- Enforce equals/hashCode contract -->
+    <module name="EqualsHashCode">
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- No assignment in subexpressions: if (a = b) -->
+    <module name="InnerAssignment">
+      <property name="severity" value="warning"/>
+    </module>
+
+    <!-- Default case required in switch -->
+    <module name="MissingSwitchDefault">
+      <property name="severity" value="warning"/>
+    </module>
+
+    <!-- Simplified boolean expressions -->
+    <module name="SimplifyBooleanExpression">
+      <property name="severity" value="warning"/>
+    </module>
+
+    <module name="SimplifyBooleanReturn">
+      <property name="severity" value="warning"/>
+    </module>
+
+    <!-- String literal equality: use .equals() not == -->
+    <module name="StringLiteralEquality">
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- No finalize() override -->
+    <module name="NoFinalizer">
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- One top-level class per file -->
+    <module name="OneTopLevelClass">
+      <property name="severity" value="error"/>
+    </module>
+
+    <!-- ==================== Modifiers ==================== -->
+
+    <!-- Modifier order: public static final, not final public static -->
+    <module name="ModifierOrder">
+      <property name="severity" value="warning"/>
+    </module>
+
+    <!-- ==================== Miscellaneous ==================== -->
+
+    <!-- Enforce @Override -->
+    <module name="MissingOverride">
+      <property name="severity" value="warning"/>
+    </module>
+
+    <!-- Array style: String[] args, not String args[] -->
+    <module name="ArrayTypeStyle">
+      <property name="severity" value="warning"/>
+    </module>
+
+    <!-- Upper case L in long literals: 1000L not 1000l -->
+    <module name="UpperEll">
+      <property name="severity" value="warning"/>
+    </module>
+
+  </module>
+</module>

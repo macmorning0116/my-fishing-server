@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+  <!-- Test code: relax method length and parameter count -->
+  <suppress files=".*Test\.java$" checks="MethodLength"/>
+  <suppress files=".*Test\.java$" checks="ParameterNumber"/>
+  <suppress files=".*Test\.java$" checks="FileLength"/>
+
+  <!-- Entity classes (Lombok @Builder generates long constructors) -->
+  <suppress files=".*entity[/\\].*\.java$" checks="ParameterNumber"/>
+  <suppress files=".*entity[/\\].*\.java$" checks="MethodLength"/>
+
+  <!-- DTO records: constructor parameters can exceed 7 -->
+  <suppress files=".*dto[/\\].*\.java$" checks="ParameterNumber"/>
+
+  <!-- External API DTOs may use snake_case field names to match JSON -->
+  <suppress files=".*external[/\\].*dto[/\\].*\.java$" checks="MemberName"/>
+
+  <!-- Spring Data JPA repositories use underscore in derived query method names -->
+  <suppress files=".*Repository\.java$" checks="MethodName"/>
+
+  <!-- Lombok @Slf4j generates 'log' constant (lowercase), not UPPER_SNAKE_CASE -->
+  <suppress checks="ConstantName" message="Name 'log'"/>
+
+  <!-- Config classes -->
+  <suppress files=".*config[/\\].*\.java$" checks="MethodLength"/>
+
+  <!-- GptClient: prompt builder is inherently long -->
+  <suppress files=".*GptClient\.java$" checks="MethodLength"/>
+
+  <!-- Service classes: allow slightly longer files -->
+  <suppress files=".*Service\.java$" checks="FileLength"/>
+
+  <!-- Storage service: image processing methods can be long -->
+  <suppress files=".*StorageService\.java$" checks="MethodLength"/>
+
+  <!-- SearchService: OpenSearch query builder is inherently long -->
+  <suppress files=".*SearchService\.java$" checks="MethodLength"/>
+
+  <!-- Migration and generated files -->
+  <suppress files=".*build[/\\].*" checks=".*"/>
+</suppressions>
