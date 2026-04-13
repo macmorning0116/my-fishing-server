@@ -7,6 +7,7 @@ public record CommunityPostSummaryItem(
     Long authorId,
     String authorNickname,
     String authorProfileImageUrl,
+    String contentPreview,
     String region,
     String species,
     String thumbnailImageUrl,

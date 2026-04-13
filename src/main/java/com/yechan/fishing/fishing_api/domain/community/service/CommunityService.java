@@ -376,12 +376,16 @@ public class CommunityService {
     return images;
   }
 
+  private static final int CONTENT_PREVIEW_MAX_LENGTH = 100;
+
   private CommunityPostSummaryItem toSummaryItem(CommunityPost post, boolean likedByMe) {
+    String contentPreview = truncate(post.getContent(), CONTENT_PREVIEW_MAX_LENGTH);
     return new CommunityPostSummaryItem(
         post.getId(),
         post.getUser().getId(),
         post.getUser().getNickname(),
         post.getUser().getProfileImageUrl(),
+        contentPreview,
         post.getRegion(),
         post.getSpecies(),
         post.getThumbnailImageUrl(),
@@ -389,6 +393,13 @@ public class CommunityService {
         post.getCommentCount(),
         likedByMe,
         post.getCreatedAt());
+  }
+
+  private String truncate(String text, int maxLength) {
+    if (text == null || text.length() <= maxLength) {
+      return text;
+    }
+    return text.substring(0, maxLength) + "...";
   }
 
   private CommunityPostItem toPostItem(
