@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -22,6 +25,7 @@ public class S3ImageStorageService implements ImageStorageService {
   private static final int THUMBNAIL_SIZE = 400;
   private static final DateTimeFormatter DATE_PATH_FORMAT =
       DateTimeFormatter.ofPattern("yyyy/MM/dd");
+  private static final ExecutorService UPLOAD_EXECUTOR = Executors.newFixedThreadPool(4);
 
   private final S3Client s3Client;
   private final String bucket;
@@ -42,8 +46,10 @@ public class S3ImageStorageService implements ImageStorageService {
       throw new FishingException(ErrorCode.COMMUNITY_IMAGE_COUNT_EXCEEDED);
     }
 
-    List<StoredCommunityImage> stored = new ArrayList<>();
     String datePath = datePath();
+
+    // 모든 이미지를 병렬로 업로드
+    List<CompletableFuture<StoredCommunityImage>> futures = new ArrayList<>();
     for (int index = 0; index < files.size(); index++) {
       MultipartFile file = files.get(index);
       validateImageFile(file);
@@ -52,21 +58,48 @@ public class S3ImageStorageService implements ImageStorageService {
       String ext = extension(file);
       String originalKey = "community/" + datePath + "/" + id + ext;
       String thumbKey = "community/" + datePath + "/" + id + "_thumb.jpg";
+      int sortOrder = index;
 
-      upload(file, originalKey);
-      String thumbnailUrl = generateAndUploadThumbnail(file, thumbKey);
+      // 원본 바이트를 먼저 읽어두기 (MultipartFile은 스레드 간 공유 불안전)
+      byte[] originalBytes;
+      byte[] thumbBytes;
+      String contentType = file.getContentType();
+      long fileSize = file.getSize();
+      try {
+        originalBytes = file.getBytes();
+        thumbBytes = generateThumbnailBytes(file);
+      } catch (IOException e) {
+        throw new FishingException(ErrorCode.COMMUNITY_IMAGE_UPLOAD_ERROR);
+      }
 
-      stored.add(
-          new StoredCommunityImage(
-              baseUrl + "/" + originalKey,
-              thumbnailUrl,
-              index,
-              file.getContentType(),
-              file.getSize(),
-              null,
-              null));
+      CompletableFuture<Void> originalFuture =
+          CompletableFuture.runAsync(
+              () -> uploadBytes(originalBytes, originalKey, contentType), UPLOAD_EXECUTOR);
+      CompletableFuture<Void> thumbFuture =
+          thumbBytes != null
+              ? CompletableFuture.runAsync(
+                  () -> uploadBytes(thumbBytes, thumbKey, "image/jpeg"), UPLOAD_EXECUTOR)
+              : CompletableFuture.completedFuture(null);
+
+      String thumbUrl = thumbBytes != null ? baseUrl + "/" + thumbKey : null;
+
+      CompletableFuture<StoredCommunityImage> combined =
+          originalFuture.thenCombine(
+              thumbFuture,
+              (a, b) ->
+                  new StoredCommunityImage(
+                      baseUrl + "/" + originalKey,
+                      thumbUrl,
+                      sortOrder,
+                      contentType,
+                      fileSize,
+                      null,
+                      null));
+      futures.add(combined);
     }
-    return stored;
+
+    // 모든 업로드 완료 대기
+    return futures.stream().map(CompletableFuture::join).toList();
   }
 
   @Override
@@ -77,7 +110,7 @@ public class S3ImageStorageService implements ImageStorageService {
     return baseUrl + "/" + key;
   }
 
-  private String generateAndUploadThumbnail(MultipartFile file, String thumbKey) {
+  private byte[] generateThumbnailBytes(MultipartFile file) {
     try {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       Thumbnails.of(file.getInputStream())
@@ -85,16 +118,16 @@ public class S3ImageStorageService implements ImageStorageService {
           .outputFormat("jpg")
           .outputQuality(0.8)
           .toOutputStream(baos);
-
-      byte[] thumbBytes = baos.toByteArray();
-      PutObjectRequest request =
-          PutObjectRequest.builder().bucket(bucket).key(thumbKey).contentType("image/jpeg").build();
-      s3Client.putObject(request, RequestBody.fromBytes(thumbBytes));
-      return baseUrl + "/" + thumbKey;
+      return baos.toByteArray();
     } catch (IOException e) {
-      // 썸네일 생성 실패 시 원본 URL을 fallback으로 사용
       return null;
     }
+  }
+
+  private void uploadBytes(byte[] bytes, String key, String contentType) {
+    PutObjectRequest request =
+        PutObjectRequest.builder().bucket(bucket).key(key).contentType(contentType).build();
+    s3Client.putObject(request, RequestBody.fromBytes(bytes));
   }
 
   private void upload(MultipartFile file, String key) {
