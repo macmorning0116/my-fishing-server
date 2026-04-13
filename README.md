@@ -5,8 +5,9 @@
 
 <img width="180" alt="검색화면" src="https://github.com/user-attachments/assets/cd1c3d1a-d465-46ab-8c90-45b78b3bf7bc" />
 <img width="180" alt="홈화면" src="https://github.com/user-attachments/assets/be31f968-35c9-4e6d-95b5-5593a91519ba" />
-<img width="180" alt="분석중화면" src="https://github.com/user-attachments/assets/43342198-48d5-44fb-9b8f-c54009d9961b" />
 <img width="180" alt="분석화면" src="https://github.com/user-attachments/assets/5f437d21-5164-4863-ad19-71abd4d38ffd" />
+<img width="180" alt="피드화면" src="https://github.com/user-attachments/assets/6d159611-6f7c-41b1-8227-d531303de3cf" />
+
 
 ## 프로젝트 소개
 
