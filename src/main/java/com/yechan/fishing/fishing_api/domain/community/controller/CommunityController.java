@@ -10,10 +10,12 @@ import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostDefaults
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostDetailResponse;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostsRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostsResponse;
+import com.yechan.fishing.fishing_api.domain.community.dto.CommunityRegionCountItem;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityReportRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityReportResponse;
 import com.yechan.fishing.fishing_api.domain.community.dto.CreateCommunityCommentRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.CreateCommunityPostRequest;
+import com.yechan.fishing.fishing_api.domain.community.dto.MapPostItem;
 import com.yechan.fishing.fishing_api.domain.community.dto.UpdateCommunityCommentRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.UpdateCommunityPostRequest;
 import com.yechan.fishing.fishing_api.domain.community.service.CommunityPostDefaultsService;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -46,6 +49,21 @@ public class CommunityController {
       CommunityPostDefaultsService communityPostDefaultsService) {
     this.communityService = communityService;
     this.communityPostDefaultsService = communityPostDefaultsService;
+  }
+
+  @GetMapping("/posts/map")
+  public ApiResponse<List<MapPostItem>> getMapPosts(
+      @RequestParam double south,
+      @RequestParam double west,
+      @RequestParam double north,
+      @RequestParam double east,
+      @RequestParam(defaultValue = "100") int limit) {
+    return ApiResponse.success(communityService.getMapPosts(south, west, north, east, limit));
+  }
+
+  @GetMapping("/posts/region-counts")
+  public ApiResponse<List<CommunityRegionCountItem>> getRegionCounts() {
+    return ApiResponse.success(communityService.getRegionCounts());
   }
 
   @GetMapping("/posts")
