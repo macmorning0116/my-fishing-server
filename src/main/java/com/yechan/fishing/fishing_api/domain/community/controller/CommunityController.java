@@ -10,10 +10,12 @@ import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostDefaults
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostDetailResponse;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostsRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostsResponse;
+import com.yechan.fishing.fishing_api.domain.community.dto.CommunityRegionCountItem;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityReportRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityReportResponse;
 import com.yechan.fishing.fishing_api.domain.community.dto.CreateCommunityCommentRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.CreateCommunityPostRequest;
+import com.yechan.fishing.fishing_api.domain.community.dto.MapPostItem;
 import com.yechan.fishing.fishing_api.domain.community.dto.UpdateCommunityCommentRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.UpdateCommunityPostRequest;
 import com.yechan.fishing.fishing_api.domain.community.service.CommunityPostDefaultsService;
@@ -46,6 +48,16 @@ public class CommunityController {
       CommunityPostDefaultsService communityPostDefaultsService) {
     this.communityService = communityService;
     this.communityPostDefaultsService = communityPostDefaultsService;
+  }
+
+  @GetMapping("/posts/map")
+  public ApiResponse<List<MapPostItem>> getMapPosts() {
+    return ApiResponse.success(communityService.getAllMapPosts());
+  }
+
+  @GetMapping("/posts/region-counts")
+  public ApiResponse<List<CommunityRegionCountItem>> getRegionCounts() {
+    return ApiResponse.success(communityService.getRegionCounts());
   }
 
   @GetMapping("/posts")

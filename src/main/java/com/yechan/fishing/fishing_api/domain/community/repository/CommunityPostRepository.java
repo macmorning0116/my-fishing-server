@@ -71,4 +71,20 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
       Long postId, VisibilityStatus visibilityStatus);
 
   long countByUser_IdAndVisibilityStatus(Long userId, VisibilityStatus visibilityStatus);
+
+  @Query(
+      value =
+          "SELECT p.id, p.thumbnail_image_url, p.species, p.content, "
+              + "ST_Y(p.location::geometry) as latitude, ST_X(p.location::geometry) as longitude "
+              + "FROM community_posts p "
+              + "WHERE p.visibility_status = 'VISIBLE' "
+              + "AND p.location IS NOT NULL "
+              + "ORDER BY p.id DESC",
+      nativeQuery = true)
+  List<Object[]> findAllVisibleWithLocation();
+
+  @Query(
+      "SELECT p.region, COUNT(p) FROM CommunityPost p WHERE p.visibilityStatus"
+          + " = :status AND p.region IS NOT NULL GROUP BY p.region")
+  List<Object[]> countByRegion(@Param("status") VisibilityStatus status);
 }

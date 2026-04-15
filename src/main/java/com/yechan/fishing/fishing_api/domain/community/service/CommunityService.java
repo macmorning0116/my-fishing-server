@@ -12,10 +12,12 @@ import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostItem;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostSummaryItem;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostsRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityPostsResponse;
+import com.yechan.fishing.fishing_api.domain.community.dto.CommunityRegionCountItem;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityReportRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.CommunityReportResponse;
 import com.yechan.fishing.fishing_api.domain.community.dto.CreateCommunityCommentRequest;
 import com.yechan.fishing.fishing_api.domain.community.dto.CreateCommunityPostRequest;
+import com.yechan.fishing.fishing_api.domain.community.dto.MapPostItem;
 import com.yechan.fishing.fishing_api.domain.community.dto.UpdateCommunityPostRequest;
 import com.yechan.fishing.fishing_api.domain.community.entity.CommunityComment;
 import com.yechan.fishing.fishing_api.domain.community.entity.CommunityPost;
@@ -580,6 +582,32 @@ public class CommunityService {
       throw new FishingException(ErrorCode.COMMUNITY_POST_DELETED);
     }
     post.softDelete(LocalDateTime.now());
+  }
+
+  @Transactional(readOnly = true)
+  public List<MapPostItem> getAllMapPosts() {
+    List<Object[]> rows = communityPostRepository.findAllVisibleWithLocation();
+    return rows.stream()
+        .map(
+            row ->
+                new MapPostItem(
+                    ((Number) row[0]).longValue(),
+                    (String) row[1],
+                    (String) row[2],
+                    row[3] != null
+                        ? ((String) row[3]).substring(0, Math.min(((String) row[3]).length(), 50))
+                        : null,
+                    ((Number) row[4]).doubleValue(),
+                    ((Number) row[5]).doubleValue()))
+        .toList();
+  }
+
+  @Transactional(readOnly = true)
+  public List<CommunityRegionCountItem> getRegionCounts() {
+    List<Object[]> rows = communityPostRepository.countByRegion(VisibilityStatus.VISIBLE);
+    return rows.stream()
+        .map(row -> new CommunityRegionCountItem((String) row[0], ((Number) row[1]).longValue()))
+        .toList();
   }
 
   private User getUser(Long userId) {
