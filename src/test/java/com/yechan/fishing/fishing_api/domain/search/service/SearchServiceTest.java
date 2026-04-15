@@ -40,6 +40,7 @@ class SearchServiceTest {
     OpenSearchProperties props = new OpenSearchProperties();
     props.setBaseUrl(server.url("/").toString());
     props.setIndexName("fishing_articles_v2");
+    props.setCommunityIndexName("fishing_community_v1");
 
     WebClient webClient =
         WebClient.builder()
@@ -112,7 +113,8 @@ class SearchServiceTest {
                 LocalDate.of(2026, 3, 28),
                 LocalDate.of(2026, 4, 1),
                 null,
-                2));
+                2,
+                null));
 
     assertEquals(2, response.items().size());
     assertEquals(2L, response.total());
@@ -205,7 +207,8 @@ class SearchServiceTest {
             .encodeToString("[\"2026-04-01\",\"469820\"]".getBytes(StandardCharsets.UTF_8));
 
     SearchPostsResponse response =
-        searchService.searchPosts(new SearchPostsRequest(null, null, null, null, null, cursor, 10));
+        searchService.searchPosts(
+            new SearchPostsRequest(null, null, null, null, null, cursor, 10, null));
 
     assertEquals(1, response.items().size());
     assertEquals("2026-04-01", response.items().get(0).publishedAt());
@@ -229,7 +232,7 @@ class SearchServiceTest {
 
     SearchPostsResponse response =
         searchService.searchPosts(
-            new SearchPostsRequest(null, null, null, null, null, "not-a-valid-cursor", null));
+            new SearchPostsRequest(null, null, null, null, null, "not-a-valid-cursor", null, null));
 
     assertTrue(response.items().isEmpty());
     assertEquals(0L, response.total());
