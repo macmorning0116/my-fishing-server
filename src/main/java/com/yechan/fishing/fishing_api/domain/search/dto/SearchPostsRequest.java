@@ -12,8 +12,13 @@ public record SearchPostsRequest(
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate untilDate,
     String cursor,
-    @Min(1) @Max(100) Integer size) {
+    @Min(1) @Max(100) Integer size,
+    String source) {
   public int safeSize() {
     return size == null ? 20 : size;
+  }
+
+  public String safeSource() {
+    return source == null ? "all" : source;
   }
 }

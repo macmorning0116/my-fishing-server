@@ -72,3 +72,5 @@ Spring Boot + Java 17 + PostgreSQL 낚시 서비스 백엔드.
 ## 커밋 규칙
 - `feat: 기능 추가`, `fix: 버그 수정` 형태
 - 서술형(`했습니다`) 대신 명사형(`추가`, `수정`, `개선`)
+- 커밋 author는 반드시 `macmorning0116 <rladPcks980@gmail.com>` 사용
+- 다른 계정으로 커밋 금지

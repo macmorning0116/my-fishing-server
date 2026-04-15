@@ -35,6 +35,7 @@ import com.yechan.fishing.fishing_api.domain.community.repository.CommunityPostR
 import com.yechan.fishing.fishing_api.domain.community.repository.CommunityReportRepository;
 import com.yechan.fishing.fishing_api.domain.community.storage.ImageStorageService;
 import com.yechan.fishing.fishing_api.domain.community.storage.StoredCommunityImage;
+import com.yechan.fishing.fishing_api.domain.search.service.CommunitySearchService;
 import com.yechan.fishing.fishing_api.global.exception.ErrorCode;
 import com.yechan.fishing.fishing_api.global.exception.FishingException;
 import java.time.LocalDateTime;
@@ -66,6 +67,7 @@ public class CommunityService {
   private final CommunityCommentRepository communityCommentRepository;
   private final CommunityReportRepository communityReportRepository;
   private final ImageStorageService imageStorageService;
+  private final CommunitySearchService communitySearchService;
 
   public CommunityService(
       UserRepository userRepository,
@@ -74,7 +76,8 @@ public class CommunityService {
       CommunityPostLikeRepository communityPostLikeRepository,
       CommunityCommentRepository communityCommentRepository,
       CommunityReportRepository communityReportRepository,
-      ImageStorageService imageStorageService) {
+      ImageStorageService imageStorageService,
+      CommunitySearchService communitySearchService) {
     this.userRepository = userRepository;
     this.communityPostRepository = communityPostRepository;
     this.communityPostImageRepository = communityPostImageRepository;
@@ -82,6 +85,7 @@ public class CommunityService {
     this.communityCommentRepository = communityCommentRepository;
     this.communityReportRepository = communityReportRepository;
     this.imageStorageService = imageStorageService;
+    this.communitySearchService = communitySearchService;
   }
 
   @Transactional(readOnly = true)
@@ -167,6 +171,8 @@ public class CommunityService {
     if (!images.isEmpty()) {
       communityPostImageRepository.saveAll(images);
     }
+
+    communitySearchService.indexPost(post);
 
     return new CommunityPostDetailResponse(toPostItem(post, false, images), toImageItems(images));
   }
@@ -330,6 +336,7 @@ public class CommunityService {
     if (distinctReporterCount >= REPORT_HIDE_THRESHOLD
         && post.getVisibilityStatus() == VisibilityStatus.VISIBLE) {
       post.hide(VisibilityReason.REPORT_THRESHOLD, LocalDateTime.now());
+      communitySearchService.deletePost(post.getId());
     }
   }
 
@@ -567,6 +574,8 @@ public class CommunityService {
         thumbnailUrl,
         now);
 
+    communitySearchService.indexPost(post);
+
     boolean likedByMe = communityPostLikeRepository.existsByPost_IdAndUser_Id(postId, userId);
     return new CommunityPostDetailResponse(
         toPostItem(post, likedByMe, allImages), toImageItems(allImages));
@@ -582,6 +591,7 @@ public class CommunityService {
       throw new FishingException(ErrorCode.COMMUNITY_POST_DELETED);
     }
     post.softDelete(LocalDateTime.now());
+    communitySearchService.deletePost(postId);
   }
 
   @Transactional(readOnly = true)

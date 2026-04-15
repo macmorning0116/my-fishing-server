@@ -6,9 +6,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.yechan.fishing.fishing_api.domain.search.dto.SearchPostItem;
-import com.yechan.fishing.fishing_api.domain.search.dto.SearchPostsResponse;
 import com.yechan.fishing.fishing_api.domain.search.dto.SearchRegionCountItem;
+import com.yechan.fishing.fishing_api.domain.search.dto.SearchResultItem;
+import com.yechan.fishing.fishing_api.domain.search.dto.UnifiedSearchResponse;
 import com.yechan.fishing.fishing_api.domain.search.service.SearchService;
 import java.time.LocalDate;
 import java.util.List;
@@ -27,28 +27,32 @@ class SearchControllerTest {
 
   @Test
   void searchPosts_returnsWrappedSuccessResponse() throws Exception {
-    SearchPostsResponse response =
-        new SearchPostsResponse(
+    UnifiedSearchResponse response =
+        new UnifiedSearchResponse(
             List.of(
-                new SearchPostItem(
+                new SearchResultItem(
+                    "article",
                     "469820",
                     "효마지 비온 뒤 출쫌,,",
                     "https://example.com/articles/469820",
+                    "배스 조행기(워킹조행)",
+                    null,
+                    null,
+                    null,
+                    null,
                     "초보초보",
                     "2026-04-01",
-                    "bass_walking",
-                    "배스 조행기(워킹조행)",
                     "배스",
                     "경상권",
                     "효마지수지",
-                    "ok",
+                    null,
                     List.of("배스", "경상권", "효마지수지"))),
             1L,
             20,
             "next-cursor");
 
     given(
-            searchService.searchPosts(
+            searchService.searchUnified(
                 argThat(
                     request ->
                         "bass".equals(request.q())
