@@ -108,6 +108,17 @@ public class UserService {
     return toAuthUserResponse(user);
   }
 
+  @Transactional
+  public AuthUserResponse resetProfileImage(Long userId) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new FishingException(ErrorCode.USER_NOT_FOUND));
+    user.ensureActive();
+    user.updateProfileImage(null, LocalDateTime.now());
+    return toAuthUserResponse(user);
+  }
+
   @Transactional(readOnly = true)
   public UserProfileResponse getUserProfile(Long userId) {
     User user =

@@ -19,6 +19,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -80,6 +81,11 @@ public class UserController {
   public ApiResponse<AuthUserResponse> updateProfileImage(
       @CurrentUser AuthenticatedUser user, @RequestPart("image") MultipartFile image) {
     return ApiResponse.success(userService.updateProfileImage(user.id(), image));
+  }
+
+  @DeleteMapping("/me/profile-image")
+  public ApiResponse<AuthUserResponse> resetProfileImage(@CurrentUser AuthenticatedUser user) {
+    return ApiResponse.success(userService.resetProfileImage(user.id()));
   }
 
   @GetMapping("/{userId}")
