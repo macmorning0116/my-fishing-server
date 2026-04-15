@@ -7,6 +7,7 @@ public class OpenSearchProperties {
 
   private String baseUrl;
   private String indexName;
+  private String communityIndexName;
 
   public String getBaseUrl() {
     return baseUrl;
@@ -22,5 +23,13 @@ public class OpenSearchProperties {
 
   public void setIndexName(String indexName) {
     this.indexName = indexName;
+  }
+
+  public String getCommunityIndexName() {
+    return communityIndexName;
+  }
+
+  public void setCommunityIndexName(String communityIndexName) {
+    this.communityIndexName = communityIndexName;
   }
 }
